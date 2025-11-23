@@ -210,35 +210,7 @@ Get-Service ssh-agent | Set-Service -StartupType Automatic
 Start-Service ssh-agent
 ```
 
-
-### Problem 2: `eval` Command Not Recognized
-
-**Error:**
-
-```
-The term 'eval' is not recognized as the name of a cmdlet
-```
-
-**Cause:** `eval` is a Linux/Mac command that doesn't work in Windows PowerShell.
-
-**Solution:** Either use PowerShell commands:
-
-```powershell
-Start-Service ssh-agent
-ssh-add ~/.ssh/id_ed25519
-```
-
-Or switch to Git Bash terminal in VSCode (recommended):
-
-1. Click terminal dropdown → Select **Git Bash**
-2. Use Linux-style commands:
-```bash
-eval "$(ssh-agent -s)"
-ssh-add ~/.ssh/id_ed25519
-```
-
-
-### Problem 3: Permission Denied (publickey)
+### Problem 2: Permission Denied (publickey)
 
 **Error:**
 
@@ -264,7 +236,7 @@ git config --global core.sshCommand "ssh -i C:/Users/YourUsername/.ssh/id_ed2551
 
 Use forward slashes in Windows paths for Git. This bypasses the SSH agent entirely and directly specifies the key file.
 
-### Problem 4: Wrong Remote URL Format
+### Problem 3: Wrong Remote URL Format
 
 **Error:**
 
@@ -279,23 +251,6 @@ SSH URLs must use colon:
 
 ```bash
 git remote set-url origin git@github.com:username/repo.git
-```
-
-
-### Problem 5: Upstream Still Uses HTTPS
-
-After switching `origin` to SSH, `upstream` remote (for forked repositories) may still use HTTPS.
-
-**Check:**
-
-```bash
-git remote -v
-```
-
-**Fix:**
-
-```bash
-git remote set-url upstream git@github.com:original-owner/repo.git
 ```
 
 
