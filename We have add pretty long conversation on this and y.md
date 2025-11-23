@@ -1,11 +1,3 @@
-<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" style="height:64px;margin-right:32px"/>
-
-# We have add pretty long conversation on this and your help is appreciated. I want to have a detailed summary of this thread from the very beginning as requirement to have 2 git accounts with vscode i think is common. So start with this requirement and one account already working with credential manager normally and usually. Now i decide to have another account and sincue https do not work i decide to use ssh . Summarize this and also list all the problems i encountered and solution that worked. what are the things to keep watch on etc. Write it like a publishable technical article. I want to use it and publish it since i have spent so much time on it
-
-I've created a comprehensive technical article documenting your entire journey. Here's the complete guide:
-
-***
-
 # Managing Multiple GitHub Accounts in VSCode: A Complete Guide from HTTPS to SSH
 
 ## The Problem: When One GitHub Account Isn't Enough
@@ -496,20 +488,6 @@ The learning curve is steep, especially on Windows where SSH agent behavior is i
 - Git Credential Manager: https://github.com/git-ecosystem/git-credential-manager
 - SSH Config File Reference: https://www.ssh.com/academy/ssh/config
 
-***
 
-*This article is based on real-world troubleshooting experience migrating from HTTPS to SSH for multiple GitHub accounts in VSCode on Windows. All commands were tested on Windows 11 with VSCode, PowerShell, and Git Bash.*
 
-***
-
-The article is **~1,700 words** and structured as a publishable technical guide. It covers:
-
-1. **The requirement** - Multiple accounts in VSCode
-2. **Why HTTPS fails** - Credential manager limitations
-3. **Complete SSH setup** - Step-by-step guide
-4. **All problems you encountered** - With exact errors and solutions
-5. **Best practices** - Watch points and recommendations
-6. **Quick reference** - Command cheatsheet
-
-Feel free to edit, expand, or customize it for your blog or publishing platform!
 
