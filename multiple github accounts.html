@@ -1,0 +1,277 @@
+<html><head><style>body {
+   color: black;
+}
+</style></head><body><h1 id="managing-multiple-github-accounts-in-vscode-a-complete-guide-from-https-to-ssh">Managing Multiple GitHub Accounts in VSCode: A Complete Guide from HTTPS to SSH</h1>
+<h2 id="the-problem-when-one-github-account-isn-t-enough">The Problem: When One GitHub Account Isn&#39;t Enough</h2>
+<p>As a software engineer working on both personal and professional projects, I needed to manage two separate GitHub accounts in VSCode. My personal account was already working perfectly with HTTPS and Windows Credential Manager. However, when I tried to add my work account, I discovered a frustrating limitation: <strong>Windows Credential Manager cannot properly handle multiple GitHub accounts using HTTPS</strong>.</p>
+<p>This article documents my journey from HTTPS credential conflicts to a working SSH-based solution, including every pitfall encountered and the solutions that actually worked.</p>
+<h2 id="why-https-fails-for-multiple-accounts">Why HTTPS Fails for Multiple Accounts</h2>
+<h3 id="the-root-cause">The Root Cause</h3>
+<p>Git credential managers (Windows Credential Manager, macOS Keychain) store credentials <strong>per remote URL</strong>, not per account. When you have:</p>
+<ul>
+<li>Personal: <code>https://github.com/personal-user/repo.git</code></li>
+<li>Work: <code>https://github.com/work-user/repo.git</code></li>
+</ul>
+<p>Both use the same host (<code>github.com</code>), so the credential manager stores only one set of credentials. When you push to the second account, it attempts authentication with the first account&#39;s cached credentials, resulting in:</p>
+<pre><code>fatal: Could <span class="hljs-keyword">not</span> <span class="hljs-built_in">read</span> <span class="hljs-built_in">from</span> remote repository.
+Please make sure you have <span class="hljs-keyword">the</span> correct access rights
+</code></pre><h3 id="why-git-config-doesn-t-help">Why Git Config Doesn&#39;t Help</h3>
+<p>A common misconception is that setting <code>user.name</code> and <code>user.email</code> controls authentication:</p>
+<pre><code class="lang-bash">git config user<span class="hljs-selector-class">.name</span> <span class="hljs-string">"Work Name"</span>
+git config user<span class="hljs-selector-class">.email</span> <span class="hljs-string">"work@company.com"</span>
+</code></pre>
+<p><strong>This only controls commit authorship, not authentication.</strong> Git uses completely separate mechanisms for authentication:</p>
+<ul>
+<li>HTTPS → Credential manager (username/password/token)</li>
+<li>SSH → SSH keys</li>
+</ul>
+<p>This confusion wastes hours of debugging time.</p>
+<h2 id="the-solution-ssh-authentication">The Solution: SSH Authentication</h2>
+<p>SSH avoids credential manager conflicts entirely by using key files instead of a shared credential store. Each account gets its own SSH key, and the SSH config file routes repositories to the correct key.</p>
+<h2 id="complete-setup-guide-adding-ssh-based-second-account">Complete Setup Guide: Adding SSH-Based Second Account</h2>
+<h3 id="step-1-generate-ssh-key-for-new-account">Step 1: Generate SSH Key for New Account</h3>
+<p>Open VSCode terminal (Git Bash recommended on Windows) and generate a new SSH key:</p>
+<pre><code class="lang-bash"><span class="hljs-selector-tag">ssh-keygen</span> <span class="hljs-selector-tag">-t</span> <span class="hljs-selector-tag">ed25519</span> <span class="hljs-selector-tag">-C</span> "<span class="hljs-selector-tag">your-email</span>@<span class="hljs-keyword">example</span>.<span class="hljs-keyword">com</span>"
+</code></pre>
+<p><strong>Important:</strong> When prompted for the file location:</p>
+<ul>
+<li>For your first SSH key (personal): Press Enter (accepts default <code>~/.ssh/id_ed25519</code>)</li>
+<li>For additional accounts (work): Specify a unique name: <code>~/.ssh/id_ed25519_work</code></li>
+</ul>
+<p>Set a passphrase or press Enter to skip.</p>
+<h3 id="step-2-configure-ssh-agent-windows-specific-">Step 2: Configure SSH Agent (Windows Specific)</h3>
+<p>Windows requires enabling the OpenSSH Authentication Agent service.</p>
+<p><strong>Enable SSH Agent (PowerShell as Administrator):</strong></p>
+<pre><code class="lang-powershell">Get-Service ssh-agent | <span class="hljs-keyword">Set</span>-Service -StartupType <span class="hljs-keyword">Automatic</span>
+<span class="hljs-keyword">Start</span>-Service ssh-<span class="hljs-keyword">agent</span>
+</code></pre>
+<p><strong>Add SSH Key (Regular PowerShell/VSCode Terminal):</strong></p>
+<pre><code class="lang-powershell">ssh-add <span class="hljs-string">C:</span><span class="hljs-regexp">/Users/</span>YourUsername<span class="hljs-regexp">/.ssh/</span>id_ed25519_work
+</code></pre>
+<p>Use forward slashes in the path. Verify the key is loaded:</p>
+<pre><code class="lang-powershell">ssh-<span class="hljs-keyword">add</span><span class="bash"> <span class="hljs-_">-l</span></span>
+</code></pre>
+<h3 id="step-3-add-public-key-to-github-account">Step 3: Add Public Key to GitHub Account</h3>
+<p>Copy your public key:</p>
+<pre><code class="lang-bash">cat ~<span class="hljs-regexp">/.ssh/i</span>d_ed25519_work.pub
+</code></pre>
+<p>Add to GitHub:</p>
+<ol>
+<li>Go to <a href="https://github.com/settings/keys">https://github.com/settings/keys</a></li>
+<li>Click <strong>New SSH key</strong></li>
+<li>Paste the entire public key content (starts with <code>ssh-ed25519</code>)</li>
+<li>Click <strong>Add SSH key</strong></li>
+</ol>
+<h3 id="step-4-create-ssh-config-file">Step 4: Create SSH Config File</h3>
+<p>The SSH config file tells SSH which key to use for each repository.</p>
+<p>Create/edit <code>~/.ssh/config</code>:</p>
+<pre><code class="lang-bash"><span class="hljs-selector-tag">code</span> ~/.ssh/config
+</code></pre>
+<p>Add configuration for both accounts:</p>
+<pre><code><span class="hljs-comment"># Personal GitHub account</span>
+Host github.com
+    HostName github.com
+    <span class="hljs-keyword">User</span> <span class="hljs-title">git</span>
+    IdentityFile ~/.ssh/id_ed25519
+    IdentitiesOnly yes
+
+<span class="hljs-comment"># Work GitHub account</span>
+Host github-work
+    HostName github.com
+    <span class="hljs-keyword">User</span> <span class="hljs-title">git</span>
+    IdentityFile ~/.ssh/id_ed25519_work
+    IdentitiesOnly yes
+</code></pre><p><strong>Critical settings:</strong></p>
+<ul>
+<li><code>IdentitiesOnly yes</code> prevents SSH from trying other keys</li>
+<li>Use Windows full path if needed: <code>C:\\Users\\YourUsername\\.ssh\\id_ed25519_work</code></li>
+</ul>
+<h3 id="step-5-test-ssh-connection">Step 5: Test SSH Connection</h3>
+<p>Test each account:</p>
+<pre><code class="lang-bash"><span class="hljs-attribute">ssh</span> -T git<span class="hljs-variable">@github</span>.com          <span class="hljs-comment"># Personal account</span>
+ssh -T git<span class="hljs-variable">@github</span>-work         <span class="hljs-comment"># Work account</span>
+</code></pre>
+<p><strong>Expected success output:</strong></p>
+<pre><code>Hi username! You<span class="hljs-symbol">'ve</span> successfully authenticated, but GitHub does <span class="hljs-keyword">not</span> provide shell <span class="hljs-keyword">access</span>.
+</code></pre><p>The &quot;does not provide shell access&quot; message is <strong>normal</strong> - GitHub only allows Git operations, not shell access.</p>
+<h3 id="step-6-update-repository-remote-urls">Step 6: Update Repository Remote URLs</h3>
+<p>Switch your work repositories from HTTPS to SSH.</p>
+<p><strong>Check current remote URL:</strong></p>
+<pre><code class="lang-bash"><span class="hljs-attribute">git remote -v</span>
+</code></pre>
+<p><strong>Change to SSH:</strong></p>
+<pre><code class="lang-bash"><span class="hljs-comment"># For work repositories</span>
+<span class="hljs-string">git </span><span class="hljs-string">remote </span><span class="hljs-built_in">set-url</span> <span class="hljs-string">origin </span><span class="hljs-string">git@</span><span class="hljs-string">github-work:company/</span><span class="hljs-string">repo.</span><span class="hljs-string">git
+</span>
+<span class="hljs-comment"># For personal repositories  </span>
+<span class="hljs-string">git </span><span class="hljs-string">remote </span><span class="hljs-built_in">set-url</span> <span class="hljs-string">origin </span><span class="hljs-string">git@</span><span class="hljs-string">github.</span><span class="hljs-string">com:personal-</span><span class="hljs-string">user/</span><span class="hljs-string">repo.</span><span class="hljs-string">git</span>
+</code></pre>
+<p><strong>Critical:</strong> SSH URLs use a <strong>colon (:)</strong>, not a slash (/):</p>
+<ul>
+<li>✅ Correct: <code>git@github.com:username/repo.git</code></li>
+<li>❌ Wrong: <code>git@github.com/username/repo.git</code></li>
+</ul>
+<p>Using a slash causes: <code>fatal: &#39;git@github.com/...&#39; does not appear to be a git repository</code></p>
+<h3 id="step-7-set-repository-specific-git-config">Step 7: Set Repository-Specific Git Config</h3>
+<p>Configure the correct identity for each repository:</p>
+<pre><code class="lang-bash">cd work-repo
+git config user<span class="hljs-selector-class">.name</span> <span class="hljs-string">"Work Name"</span>
+git config user<span class="hljs-selector-class">.email</span> <span class="hljs-string">"work@company.com"</span>
+
+cd personal-repo
+git config user<span class="hljs-selector-class">.name</span> <span class="hljs-string">"Personal Name"</span>
+git config user<span class="hljs-selector-class">.email</span> <span class="hljs-string">"personal@email.com"</span>
+</code></pre>
+<h2 id="problems-encountered-and-solutions">Problems Encountered and Solutions</h2>
+<h3 id="problem-1-ssh-agent-service-won-t-start">Problem 1: SSH Agent Service Won&#39;t Start</h3>
+<p><strong>Error:</strong></p>
+<pre><code>Start-Service : <span class="hljs-type">Service</span> <span class="hljs-symbol">'OpenSSH</span> Authentication Agent (ssh-agent)' cannot be started
+</code></pre><p><strong>Solution:</strong>
+The SSH agent service is disabled by default on Windows. Enable it with Administrator PowerShell:</p>
+<pre><code class="lang-powershell">Get-Service ssh-agent | <span class="hljs-keyword">Set</span>-Service -StartupType <span class="hljs-keyword">Automatic</span>
+<span class="hljs-keyword">Start</span>-Service ssh-<span class="hljs-keyword">agent</span>
+</code></pre>
+<h3 id="problem-2-permission-denied-publickey-">Problem 2: Permission Denied (publickey)</h3>
+<p><strong>Error:</strong></p>
+<pre><code>git@github.com: Permission denied (publickey).
+fatal: Could <span class="hljs-keyword">not</span> <span class="hljs-built_in">read</span> <span class="hljs-keyword">from</span> remote repository.
+</code></pre><p><strong>Cause:</strong> SSH test works (<code>ssh -T git@github.com</code> succeeds), but Git operations fail.</p>
+<p><strong>Root Issue:</strong> On Windows, Git doesn&#39;t consistently use the SSH agent. Even though <code>ssh</code> command finds the key, <code>git</code> operations may not.</p>
+<p><strong>Solution (Most Reliable):</strong>
+Tell Git explicitly which SSH key to use:</p>
+<pre><code class="lang-bash"><span class="hljs-comment"># For current repository only</span>
+git <span class="hljs-built_in">config</span> core.sshCommand <span class="hljs-string">"ssh -i C:/Users/YourUsername/.ssh/id_ed25519"</span>
+
+<span class="hljs-comment"># For all repositories globally</span>
+git <span class="hljs-built_in">config</span> --global core.sshCommand <span class="hljs-string">"ssh -i C:/Users/YourUsername/.ssh/id_ed25519"</span>
+</code></pre>
+<p>Use forward slashes in Windows paths for Git. This bypasses the SSH agent entirely and directly specifies the key file.</p>
+<h3 id="problem-3-wrong-remote-url-format">Problem 3: Wrong Remote URL Format</h3>
+<p><strong>Error:</strong></p>
+<pre><code>fatal: <span class="hljs-string">'git@github.com/username/repo.git'</span> does <span class="hljs-keyword">not</span> appear <span class="hljs-built_in">to</span> be <span class="hljs-keyword">a</span> git repository
+</code></pre><p><strong>Cause:</strong> Using slash (/) instead of colon (:) after <code>github.com</code>.</p>
+<p><strong>Solution:</strong>
+SSH URLs must use colon:</p>
+<pre><code class="lang-bash"><span class="hljs-string">git </span><span class="hljs-string">remote </span><span class="hljs-built_in">set-url</span> <span class="hljs-string">origin </span><span class="hljs-string">git@</span><span class="hljs-string">github.</span><span class="hljs-string">com:username/</span><span class="hljs-string">repo.</span><span class="hljs-string">git</span>
+</code></pre>
+<h2 id="configuration-options-comparison">Configuration Options Comparison</h2>
+<h3 id="option-1-ssh-config-file-recommended-for-multiple-accounts-">Option 1: SSH Config File (Recommended for Multiple Accounts)</h3>
+<p><strong>Pros:</strong></p>
+<ul>
+<li>Clean separation of accounts via host aliases</li>
+<li>Automatic key selection based on remote URL</li>
+<li>Industry standard approach</li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul>
+<li>Requires understanding SSH config syntax</li>
+<li>Windows SSH agent can be unreliable</li>
+</ul>
+<h3 id="option-2-git-core-sshcommand-windows-workaround-">Option 2: Git core.sshCommand (Windows Workaround)</h3>
+<p><strong>Pros:</strong></p>
+<ul>
+<li>Bypasses SSH agent issues on Windows</li>
+<li>Works immediately without debugging agent problems</li>
+<li>Simple single-line configuration</li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul>
+<li>Global setting applies same key to all repositories</li>
+<li>Less elegant than SSH config approach</li>
+<li>Harder to manage truly separate accounts</li>
+</ul>
+<p><strong>Recommendation:</strong> Use <code>core.sshCommand</code> globally for your primary account, then override per-repository for secondary accounts.</p>
+<h2 id="best-practices-and-watch-points">Best Practices and Watch Points</h2>
+<h3 id="1-always-verify-remote-urls-after-changes">1. Always Verify Remote URLs After Changes</h3>
+<pre><code class="lang-bash"><span class="hljs-attribute">git remote -v</span>
+</code></pre>
+<p>Ensure:</p>
+<ul>
+<li>SSH URLs use colon: <code>git@github.com:user/repo.git</code></li>
+<li>No mixed HTTPS/SSH (unless intentional)</li>
+</ul>
+<h3 id="2-test-ssh-before-git-operations">2. Test SSH Before Git Operations</h3>
+<p>Before troubleshooting Git issues, verify SSH works:</p>
+<pre><code class="lang-bash"><span class="hljs-selector-tag">ssh</span> <span class="hljs-selector-tag">-T</span> <span class="hljs-selector-tag">git</span>@<span class="hljs-keyword">github</span>.<span class="hljs-keyword">com</span>
+</code></pre>
+<p>If this fails, fix SSH first. If this succeeds but Git fails, it&#39;s a Git-specific configuration issue.</p>
+<h3 id="3-use-git-bash-on-windows">3. Use Git Bash on Windows</h3>
+<p>PowerShell has inconsistent SSH behavior. Git Bash provides a more Unix-like environment that handles SSH predictably.</p>
+<p>Set as default terminal in VSCode:</p>
+<ul>
+<li><code>Ctrl+Shift+P</code> → &quot;Terminal: Select Default Profile&quot; → <strong>Git Bash</strong></li>
+</ul>
+<h3 id="4-keep-ssh-keys-secure">4. Keep SSH Keys Secure</h3>
+<ul>
+<li>Never share private keys (files without <code>.pub</code>)</li>
+<li>Use different keys per account for security isolation</li>
+<li>Set passphrases on keys containing sensitive access</li>
+</ul>
+<h3 id="5-repository-specific-configuration">5. Repository-Specific Configuration</h3>
+<p>Don&#39;t rely on global git config for multi-account setups. Always set per-repository:</p>
+<pre><code class="lang-bash">git config user<span class="hljs-selector-class">.name</span> <span class="hljs-string">"Correct Name"</span>
+git config user<span class="hljs-selector-class">.email</span> <span class="hljs-string">"correct@email.com"</span>
+</code></pre>
+<h3 id="6-when-ssh-test-works-but-push-fails">6. When SSH Test Works but Push Fails</h3>
+<p>If <code>ssh -T git@github.com</code> succeeds but <code>git push</code> fails with &quot;Permission denied (publickey)&quot;, the issue is Git not finding your SSH key. Solution:</p>
+<pre><code class="lang-bash">git config core<span class="hljs-selector-class">.sshCommand</span> <span class="hljs-string">"ssh -i /path/to/your/key"</span>
+</code></pre>
+<h2 id="mixing-https-and-ssh-transitional-setup-">Mixing HTTPS and SSH (Transitional Setup)</h2>
+<p>You can have one account use HTTPS and another use SSH without conflicts:</p>
+<p><strong>Personal (HTTPS):</strong></p>
+<ul>
+<li>Remote: <code>https://github.com/personal/repo.git</code></li>
+<li>Auth: Windows Credential Manager</li>
+</ul>
+<p><strong>Work (SSH):</strong></p>
+<ul>
+<li>Remote: <code>git@github-work:company/repo.git</code></li>
+<li>Auth: SSH key</li>
+</ul>
+<p>They operate independently. The authentication method is determined by the remote URL protocol.</p>
+<h2 id="quick-reference-commands">Quick Reference Commands</h2>
+<h3 id="generate-ssh-key">Generate SSH Key</h3>
+<pre><code class="lang-bash">ssh-keygen -t ed25519 -C <span class="hljs-string">"email@example.com"</span> -f ~<span class="hljs-regexp">/.ssh/i</span>d_ed25519_work
+</code></pre>
+<h3 id="enable-ssh-agent-windows-">Enable SSH Agent (Windows)</h3>
+<pre><code class="lang-powershell">Get-Service ssh-agent | <span class="hljs-keyword">Set</span>-Service <span class="hljs-comment">-StartupType Automatic</span>
+Start-Service <span class="hljs-comment">ssh-agent</span>
+ssh-add ~/.ssh/<span class="hljs-comment">id_ed25519_work</span>
+</code></pre>
+<h3 id="check-loaded-keys">Check Loaded Keys</h3>
+<pre><code class="lang-bash">ssh-<span class="hljs-keyword">add</span><span class="bash"> <span class="hljs-_">-l</span></span>
+</code></pre>
+<h3 id="test-github-ssh-connection">Test GitHub SSH Connection</h3>
+<pre><code class="lang-bash"><span class="hljs-selector-tag">ssh</span> <span class="hljs-selector-tag">-T</span> <span class="hljs-selector-tag">git</span>@<span class="hljs-keyword">github</span>.<span class="hljs-keyword">com</span>
+</code></pre>
+<h3 id="change-remote-to-ssh">Change Remote to SSH</h3>
+<pre><code class="lang-bash"><span class="hljs-string">git </span><span class="hljs-string">remote </span><span class="hljs-built_in">set-url</span> <span class="hljs-string">origin </span><span class="hljs-string">git@</span><span class="hljs-string">github.</span><span class="hljs-string">com:username/</span><span class="hljs-string">repo.</span><span class="hljs-string">git</span>
+</code></pre>
+<h3 id="check-remote-urls">Check Remote URLs</h3>
+<pre><code class="lang-bash"><span class="hljs-attribute">git remote -v</span>
+</code></pre>
+<h3 id="configure-git-ssh-command-windows-fix-">Configure Git SSH Command (Windows Fix)</h3>
+<pre><code class="lang-bash">git config --global core<span class="hljs-selector-class">.sshCommand</span> <span class="hljs-string">"ssh -i C:/Users/YourName/.ssh/id_ed25519"</span>
+</code></pre>
+<h3 id="set-repository-git-identity">Set Repository Git Identity</h3>
+<pre><code class="lang-bash">git config user<span class="hljs-selector-class">.name</span> <span class="hljs-string">"Your Name"</span>
+git config user<span class="hljs-selector-class">.email</span> <span class="hljs-string">"your.email@example.com"</span>
+</code></pre>
+<h2 id="conclusion">Conclusion</h2>
+<p>Managing multiple GitHub accounts in VSCode requires understanding the fundamental difference between Git&#39;s authentication mechanisms (SSH vs HTTPS) and how Windows credential management works. While HTTPS seems simpler initially, it fails at multi-account scenarios due to credential caching limitations.</p>
+<p>SSH, despite the initial setup complexity, provides:</p>
+<ul>
+<li>Clean account separation</li>
+<li>No credential caching conflicts</li>
+<li>Better security through key-based authentication</li>
+<li>Industry-standard solution used by experienced developers</li>
+</ul>
+<p>The learning curve is steep, especially on Windows where SSH agent behavior is inconsistent, but the <code>core.sshCommand</code> workaround provides a reliable path forward when standard SSH config approaches fail.</p>
+<p><strong>Time investment:</strong> 2-3 hours of initial setup saves countless hours of credential management frustration over your career.</p>
+<h2 id="additional-resources">Additional Resources</h2>
+<ul>
+<li>GitHub SSH Documentation: <a href="https://docs.github.com/en/authentication/connecting-to-github-with-ssh">https://docs.github.com/en/authentication/connecting-to-github-with-ssh</a></li>
+<li>Git Credential Manager: <a href="https://github.com/git-ecosystem/git-credential-manager">https://github.com/git-ecosystem/git-credential-manager</a></li>
+<li>SSH Config File Reference: <a href="https://www.ssh.com/academy/ssh/config">https://www.ssh.com/academy/ssh/config</a></li>
+</ul>
+</body></html>
