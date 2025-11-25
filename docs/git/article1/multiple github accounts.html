@@ -1,16 +1,19 @@
 <html><head><style>body {
    color: black;
 }
-</style></head><body><h1 id="managing-multiple-github-accounts-in-vscode-a-complete-guide-from-https-to-ssh">Managing Multiple GitHub Accounts in VSCode: A Complete Guide from HTTPS to SSH</h1>
+</style></head><body><h1 id="managing-multiple-github-accounts-in-vscode-a-complete-guide-from-https-to-ssh">Managing Multiple GitHub Accounts: A Complete Guide from HTTPS to SSH</h1>
 <h2 id="the-problem-when-one-github-account-isn-t-enough">The Problem: When One GitHub Account Isn&#39;t Enough</h2>
-<p>As a software engineer working on both personal and professional projects, I needed to manage two separate GitHub accounts in VSCode. My personal account was already working perfectly with HTTPS and Windows Credential Manager. However, when I tried to add my work account, I discovered a frustrating limitation: <strong>Windows Credential Manager cannot properly handle multiple GitHub accounts using HTTPS</strong>.</p>
-<p>This article documents my journey from HTTPS credential conflicts to a working SSH-based solution, including every pitfall encountered and the solutions that actually worked.</p>
+<p>As a software engineer working on multiple projects, I needed to manage two separate GitHub accounts in VSCode. My personal account was already working perfectly with HTTPS and Windows Credential Manager. However, when I tried to add another account, I discovered a frustrating limitation: <strong>Windows Credential Manager cannot properly handle multiple GitHub accounts using HTTPS</strong>.</p>
+<p>This article documents my journey from HTTPS credential conflicts to a working SSH-based solution, including every pitfall encountered and the solutions that actually worked. Here work account is not actually work account , the term used for example only to show another account</p>
+<img src="git-https.png" alt="GIT with HTTPS" width="600" height="600">
+<img src="git-ssh.png" alt="GIT with SSH" width="600" height="600">
+<img src="git-https-ssh.png" alt="GIT with HTTPS & SSH" width="600" height="600">
 <h2 id="why-https-fails-for-multiple-accounts">Why HTTPS Fails for Multiple Accounts</h2>
 <h3 id="the-root-cause">The Root Cause</h3>
 <p>Git credential managers (Windows Credential Manager, macOS Keychain) store credentials <strong>per remote URL</strong>, not per account. When you have:</p>
 <ul>
-<li>Personal: <code>https://github.com/personal-user/repo.git</code></li>
-<li>Work: <code>https://github.com/work-user/repo.git</code></li>
+<li>Account 1 for example personal : <code>https://github.com/personal-user/repo.git</code></li>
+<li>Account 2 for example work: <code>https://github.com/work-user/repo.git</code></li>
 </ul>
 <p>Both use the same host (<code>github.com</code>), so the credential manager stores only one set of credentials. When you push to the second account, it attempts authentication with the first account&#39;s cached credentials, resulting in:</p>
 <pre><code>fatal: Could <span class="hljs-keyword">not</span> <span class="hljs-built_in">read</span> <span class="hljs-built_in">from</span> remote repository.
