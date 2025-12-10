@@ -1,0 +1,140 @@
+<h2>1. Power‑on / reset: what the hardware does</h2>
+<p>
+  After reset, the Cortex‑M core assumes a vector table base address, which is usually
+  at 0x00000000 or wherever the VTOR (Vector Table Offset Register) points in the
+  memory map.[1]
+</p>
+<p>
+  The CPU then reads two 32‑bit words from this base: the word at offset 0 is loaded
+  into the MSP (Main Stack Pointer), and the word at offset 4 is loaded into the PC as
+  the address of the Reset_Handler.[1]
+</p>
+<p>
+  Execution starts at Reset_Handler, with the stack pointer initialized from the MSP
+  value that was just loaded, so early C startup code and interrupt handling have a
+  valid stack from the first instruction.[1]
+</p>
+
+<h2>2. Vector table and startup file</h2>
+<p>
+  The vector table is an array of 32‑bit entries that starts with the initial MSP value,
+  followed by the Reset_Handler address, then entries for NMI, HardFault, all other
+  exceptions, and finally the IRQ handlers defined by the device.[1]
+</p>
+<p>
+  The startup file for a typical Cortex‑M project defines this vector table in a special
+  linker section such as <code>.isr_vector</code>, so that the linker can place it at the
+  start of flash.[1]
+</p>
+<p>
+  Reset_Handler in the startup file usually performs CRT startup: it copies initialized
+  data from flash to RAM, zeros the <code>.bss</code> section, configures clocks and low‑level
+  hardware where needed, and finally calls <code>main()</code>.[1]
+</p>
+<p>
+  The linker script ensures that the <code>.isr_vector</code> section ends up at address
+  0x00000000 (or the appropriate boot mapping), so that the first two words of the
+  image correspond to the initial MSP and Reset_Handler for the CPU.[1]
+</p>
+
+<h2>3. MSP: where the initial value comes from</h2>
+<p>
+  The linker script defines the RAM region with an origin and length, for example:
+  origin at 0x20000000 with some number of kilobytes of RAM.[1]
+</p>
+<p>
+  A symbol such as <code>_estack</code> is then defined as the top of this RAM region, usually
+  aligned to 8 bytes to satisfy the Cortex‑M stack alignment rules.[1]
+</p>
+<p>
+  The vector table’s first entry is set to this <code>_estack</code> symbol, so that the initial
+  MSP value used on reset points at the top of main RAM and the stack grows
+  downward from there.[1]
+</p>
+
+<h2>4. ROM boot vs application boot</h2>
+<h3>4.1 Boot ROM phase (vendor code)</h3>
+<p>
+  On many microcontrollers, the address 0x00000000 is mapped to Boot ROM after
+  reset, so the first vector table and Reset_Handler that execute are in ROM, not in
+  your application flash.[1]
+</p>
+<p>
+  In this phase, the vendor’s ROM code uses its own vector table and MSP, and may
+  implement boot source selection (for example, from on‑chip flash, UART, USB, or
+  other peripherals) along with secure boot and basic integrity checks.[1]
+</p>
+<p>
+  Once Boot ROM has decided where to boot from and optionally validated the
+  application image, it jumps into the user application image entry point.[1]
+</p>
+
+<h3>4.2 Application phase (your code)</h3>
+<p>
+  After the ROM phase, the system typically remaps 0x00000000 to the application
+  flash region or programs VTOR to point to the application’s vector table in flash.[1]
+</p>
+<p>
+  The application boot sequence then loads the MSP from entry 0 of the application
+  vector table and branches to the Reset_Handler from entry 1, which runs the usual
+  startup code and eventually calls <code>main()</code>.[1]
+</p>
+<p>
+  This separation allows the vendor ROM to handle low‑level boot and security while
+  your firmware sees a clean, standard Cortex‑M reset path starting at the application
+  Reset_Handler.[1]
+</p>
+
+<h2>5. TrustZone: Secure vs Non‑Secure worlds</h2>
+<h3>5.1 Reset and the Secure world</h3>
+<p>
+  On TrustZone‑enabled Cortex‑M devices such as Cortex‑M23, Cortex‑M33, or
+  Cortex‑M35P, reset always starts in the Secure state, using a Secure vector table
+  and a Secure MSP loaded from that table.[1]
+</p>
+<p>
+  The Secure Reset_Handler executes first and is responsible for configuring the
+  overall security partitioning and initialization before any Non‑Secure code is allowed
+  to run.[1]
+</p>
+
+<h3>5.2 Secure boot and secure firmware</h3>
+<p>
+  Secure firmware uses the SAU (Security Attribution Unit), an implementation‑defined
+  attribution unit (IDAU), and vendor‑specific security configuration blocks to classify
+  regions of Flash, RAM, and peripherals as Secure, Non‑Secure, or Non‑Secure‑Callable.
+<h3>5.3 Hand‑off to the Non‑Secure application</h3>
+<p>
+  After the Secure setup is complete, the Secure code programs the Non‑Secure VTOR
+  and the Non‑Secure MSP so that the Non‑Secure world has its own vector table and
+  stack configuration.[1]
+</p>
+<p>
+  The Secure firmware then branches to the Non‑Secure Reset_Handler using an NS
+  (Non‑Secure) branch instruction, entering the Non‑Secure state with a well‑defined
+  sandbox enforced by the TrustZone attribution rules.[1]
+</p>
+<p>
+  From that point, the Non‑Secure application behaves like a regular Cortex‑M
+  firmware, but hardware blocks it from directly accessing Secure‑only memory and
+  peripherals, only allowing calls through Non‑Secure‑Callable entry points where
+  explicitly configured.[1]
+</p>
+
+<h2>6. How to explain this in a meeting</h2>
+<p>
+  A clear way to present this on a whiteboard is to first sketch a simple memory map
+  with flash at the top, RAM in the middle, and ROM at one end, then mark the vector
+  table at the start of flash or ROM depending on the boot phase.[1]
+</p>
+<p>
+  From the vector table, draw one arrow from entry 0 to the MSP, and another from
+  entry 1 to the PC pointing to Reset_Handler, then extend that arrow to <code>main()</code> to
+  show the high‑level reset flow.[1]
+</p>
+<p>
+  For TrustZone, add a vertical split between Secure and Non‑Secure regions in the
+  address space, draw separate Secure and Non‑Secure vector tables and MSPs, and
+  then draw a controlled arrow from the Secure Reset_Handler to the Non‑Secure
+  Reset_Handler to illustrate the secure hand‑off.[1]
+</p>
