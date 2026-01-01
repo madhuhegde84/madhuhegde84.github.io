@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WLAN PHY Frequency Calibration: Understanding RFXTAL Compensation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+            background-color: #f9f9f9;
+        }
+
+        .container {
+            background-color: white;
+            padding: 40px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 2.2em;
+        }
+
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            font-size: 1.8em;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 8px;
+        }
+
+        h3 {
+            color: #546e7a;
+            margin-top: 20px;
+            font-size: 1.4em;
+        }
+
+        h4 {
+            color: #607d8b;
+            font-size: 1.2em;
+        }
+
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            color: #c7254e;
+        }
+
+        pre {
+            background-color: #282c34;
+            color: #abb2bf;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+
+        pre code {
+            background-color: transparent;
+            color: #abb2bf;
+            padding: 0;
+        }
+
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+
+        li {
+            margin: 8px 0;
+        }
+
+        strong {
+            color: #2c3e50;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+        }
+
+        th {
+            background-color: #3498db;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        tr:hover {
+            background-color: #e8f4f8;
+        }
+
+        .math {
+            font-style: italic;
+            color: #16a085;
+        }
+
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #555;
+            font-style: italic;
+        }
+
+        hr {
+            border: none;
+            border-top: 2px solid #ecf0f1;
+            margin: 30px 0;
+        }
+
+        .toc {
+            background-color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .toc h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        @media print {
+            body {
+                background-color: white;
+            }
+            .container {
+                box-shadow: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            h2 {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+    <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+            tex2jax: {
+                inlineMath: [['\(', '\)']],
+                displayMath: [['\[', '\]']],
+                processEscapes: true
+            }
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+<h1>WLAN PHY Frequency Calibration: Understanding RFXTAL Compensation</h1>
+<br>
+<h2>Introduction</h2>
+<br>
+<p>Frequency calibration is a critical algorithm in the WLAN PHY layer that ensures accurate carrier frequency generation for wireless communication. This calibration compensates for crystal oscillator inaccuracies and frequency drift across Process, Voltage, and Temperature (PVT) variations. Even small frequency errors can destroy OFDM subcarrier orthogonality, leading to inter-carrier interference and packet loss.</p>
+<br>
+<h2>Purpose of Frequency Calibration</h2>
+<br>
+<h3>Why Accurate Carrier Frequency Matters</h3>
+<br>
+<p>In OFDM-based WLAN systems (802.11n, 802.11ax, 802.11be), precise carrier frequency generation is essential for maintaining subcarrier orthogonality. The orthogonality of OFDM subcarriers depends on precise frequency spacing where subcarrier peaks align with nulls of adjacent subcarriers.</p>
+<br>
+<p>When Carrier Frequency Offset (CFO) occurs due to crystal inaccuracies, this alignment breaks down, causing:</p>
+<br>
+<ul>
+<li><strong>Inter-Carrier Interference (ICI)</strong>: Subcarrier spectra interfere with each other</li>
+<li><strong>Degraded SNR</strong>: Reduced signal-to-noise ratio at the receiver</li>
+<li><strong>Packet Loss</strong>: Demodulation failures and increased PER (Packet Error Rate)</li>
+<li><strong>Spectral Mask Violations</strong>: Transmitted signal may exceed regulatory emission limits</li>
+</ul>
+<br>
+<h3>IEEE 802.11 Frequency Tolerance Requirements</h3>
+<br>
+<p>The IEEE 802.11 standard specifies a <strong>±20 ppm frequency tolerance</strong> for both transmitters and receivers. This tight tolerance ensures interoperability between devices from different manufacturers and maintains OFDM performance.</p>
+<br>
+<h2>Understanding PPM (Parts Per Million)</h2>
+<br>
+<h3>What is PPM?</h3>
+<br>
+<p>Parts per million (ppm) is a dimensionless unit expressing the ratio of frequency error to the nominal frequency:</p>
+<br>
+<p>\[ \text{ppm} = \frac{f_{\text{error}}}{f_{\text{nominal}}} \times 10^6 \]</p>
+<br>
+<h3>PPM to Frequency Error Conversion</h3>
+<br>
+<p>For a given carrier frequency, the absolute frequency error in Hz can be calculated as:</p>
+<br>
+<p>\[ f_{\text{error}} = f_{\text{carrier}} \times \frac{\text{ppm}}{10^6} \]</p>
+<br>
+<h3>Example Calculations</h3>
+<br>
+<h4>Example 1: 2.412 GHz (802.11 Channel 1)</h4>
+<br>
+<p>If a crystal has <strong>±20 ppm</strong> initial tolerance:</p>
+<br>
+<ul>
+<li><strong>Frequency error</strong> = 2.412 GHz × 20 ppm = 2.412 × 10⁹ × 20 × 10⁻⁶ = <strong>48.24 kHz</strong></li>
+<li><strong>Actual frequency range</strong>: 2.412000 GHz ± 0.000048 GHz = <strong>2.411952 to 2.412048 GHz</strong></li>
+</ul>
+<br>
+<h4>Example 2: 5.240 GHz (802.11 Channel 48)</h4>
+<br>
+<p>With the same <strong>±20 ppm</strong> tolerance:</p>
+<br>
+<ul>
+<li><strong>Frequency error</strong> = 5.240 GHz × 20 ppm = 5.240 × 10⁹ × 20 × 10⁻⁶ = <strong>104.8 kHz</strong></li>
+<li><strong>Actual frequency range</strong>: 5.240000 GHz ± 0.000105 GHz = <strong>5.239895 to 5.240105 GHz</strong></li>
+</ul>
+<br>
+<p>Notice that at higher frequencies (5 GHz vs 2.4 GHz), the same ppm error results in a larger absolute frequency deviation.</p>
+<br>
+<h2>Crystal Oscillator Challenges</h2>
+<br>
+<h3>Sources of Frequency Error</h3>
+<br>
+<p>Crystal oscillators generate frequencies that vary due to several factors:</p>
+<br>
+<ol>
+<li><strong>Manufacturing Tolerances</strong>: Each crystal has inherent fabrication variations (±10 to ±30 ppm at 25°C)</li>
+<li><strong>Temperature Variation</strong>: Crystal frequency changes with ambient temperature (±20-30 ppm over -40°C to +85°C range)</li>
+<li><strong>PCB Capacitance Variation</strong>: Board-to-board stray capacitance differences affect crystal loading</li>
+<li><strong>On-chip Process Variation</strong>: Semiconductor process variations cause capacitor values to differ die-to-die</li>
+<li><strong>Aging</strong>: Long-term frequency drift over device lifetime (typically ±5 ppm over several years)</li>
+</ol>
+<br>
+<h3>Load Capacitance Impact</h3>
+<br>
+<p>Crystals are manufactured to oscillate at their nominal frequency when loaded with a specific capacitance (CL, typically 8-20 pF). The relationship between load capacitance and frequency is characterized by the crystal's "pulling factor":</p>
+<br>
+<p>\[ \Delta f = \text{Pulling Factor} \times \Delta C_L \]</p>
+<br>
+<p>where pulling factor is typically specified in <strong>ppm/pF</strong>.</p>
+<br>
+<ul>
+<li><strong>Higher capacitance</strong> → Lower frequency</li>
+<li><strong>Lower capacitance</strong> → Higher frequency</li>
+</ul>
+<br>
+<h2>RFXTAL Calibration Parameter</h2>
+<br>
+<h3>What is RFXTAL?</h3>
+<br>
+<p>RFXTAL is a digital compensation parameter that adjusts the on-chip tunable loading capacitance to fine-tune the crystal oscillator frequency. It compensates for both initial factory offset and temperature-dependent drift.</p>
+<br>
+<h3>Data Format</h3>
+<br>
+<ul>
+<li><strong>Type</strong>: 8-bit signed integer</li>
+<li><strong>Range</strong>: -128 to +127 (256 discrete steps)</li>
+<li><strong>Format</strong>: Hexadecimal (e.g., 0x6D, 0x00, 0xFF)</li>
+<li><strong>Resolution</strong>: Typically 0.5 to 2 ppm per LSB step</li>
+<li><strong>Storage</strong>: OTP fuses, EEPROM, or flash calibration partition</li>
+</ul>
+<br>
+<h3>LSB Resolution Example</h3>
+<br>
+<p>If your platform has <strong>1 ppm/step</strong> resolution:</p>
+<br>
+<p>At 2.412 GHz:</p>
+<ul>
+<li><strong>Per step frequency change</strong>: 2.412 GHz × 1 ppm = 2.412 kHz</li>
+<li><strong>RFXTAL = +10</strong>: Shifts frequency by +24.12 kHz</li>
+<li><strong>RFXTAL = -20</strong>: Shifts frequency by -48.24 kHz</li>
+</ul>
+<br>
+<p>At 5.240 GHz:</p>
+<ul>
+<li><strong>Per step frequency change</strong>: 5.240 GHz × 1 ppm = 5.240 kHz</li>
+<li><strong>RFXTAL = +10</strong>: Shifts frequency by +52.4 kHz</li>
+</ul>
+<br>
+<h3>Total Compensation Range</h3>
+<br>
+<p>With 8-bit signed integer and 1 ppm/step:</p>
+<ul>
+<li><strong>Range</strong>: ±127 steps × 1 ppm/step = <strong>±127 ppm</strong></li>
+<li>This provides adequate margin for typical ±20-30 ppm crystal tolerances</li>
+</ul>
+<br>
+<h2>Two-Stage Compensation Strategy</h2>
+<br>
+<p>WLAN systems implement a two-level calibration approach:</p>
+<br>
+<h3>1. Static RFXTAL Calibration (Factory)</h3>
+<br>
+<ul>
+<li><strong>Purpose</strong>: Correct unit-to-unit manufacturing variation</li>
+<li><strong>Method</strong>: Measure frequency error at 25°C reference temperature</li>
+<li><strong>Storage</strong>: RFXTALbase stored in non-volatile memory</li>
+<li><strong>When</strong>: Performed once during manufacturing</li>
+</ul>
+<br>
+<h3>2. Dynamic Temperature Compensation (Runtime)</h3>
+<br>
+<ul>
+<li><strong>Purpose</strong>: Correct temperature-dependent frequency drift</li>
+<li><strong>Method</strong>: Apply polynomial correction based on real-time temperature</li>
+<li><strong>Storage</strong>: Polynomial coefficients C₀, C₁, C₂, C₃ stored in OTP/flash</li>
+<li><strong>When</strong>: Continuously updated during device operation</li>
+</ul>
+<br>
+<h2>Temperature Compensation Algorithm</h2>
+<br>
+<h3>Mathematical Model</h3>
+<br>
+<p>The temperature-compensated RFXTAL value is calculated using a polynomial equation:</p>
+<br>
+<p>\[ \text{RFXTAL}_{\text{eff}} = \text{RFXTAL}_{\text{base}} + C_0 + C_1 \cdot \Delta T + C_2 \cdot \Delta T^2 + C_3 \cdot \Delta T^3 \]</p>
+<br>
+<p>where:</p>
+<ul>
+<li>\(\Delta T = T_{\text{current}} - T_{\text{ref}}\) (temperature difference from reference, typically 25°C)</li>
+<li>\(C_0, C_1, C_2, C_3\) are device-specific polynomial coefficients</li>
+</ul>
+<br>
+<h3>Coefficient Data Types</h3>
+<br>
+<p>Unlike RFXTAL which is an 8-bit integer, the polynomial coefficients use different data types:</p>
+<br>
+<ul>
+<li><strong>C₀</strong>: Signed 8-bit or 16-bit integer (similar order to RFXTAL)</li>
+<li><strong>C₁</strong>: Float or fixed-point (linear coefficient, typically ~10⁻³ to 10⁻⁴ range)</li>
+<li><strong>C₂</strong>: Float or fixed-point (quadratic coefficient, typically ~10⁻⁵ to 10⁻⁶ range)</li>
+<li><strong>C₃</strong>: Float or fixed-point (cubic coefficient, typically ~10⁻⁷ to 10⁻⁸ range)</li>
+</ul>
+<br>
+<h3>Firmware Implementation</h3>
+<br>
+<pre><code class="language-c">/**
+ * Temperature compensation structure stored in calibration data
+ */
+typedef struct {
+    int8_t   rfxtal_base;    // Base RFXTAL value at 25°C
+    float    c0;             // Constant coefficient
+    float    c1;             // Linear coefficient (ppm/°C)
+    float    c2;             // Quadratic coefficient (ppm/°C²)
+    float    c3;             // Cubic coefficient (ppm/°C³)
+    int8_t   temp_ref;       // Reference temperature (typically 25°C)
+} rfxtal_cal_data_t;
+
+/**
+ * Calculate temperature-compensated RFXTAL value
+ * 
+ * @param cal_data: Pointer to calibration data structure
+ * @param current_temp: Current temperature in degrees Celsius
+ * @return: Compensated RFXTAL value (8-bit signed integer)
+ */
+int8_t calculate_rfxtal_compensated(const rfxtal_cal_data_t *cal_data, 
+                                    float current_temp)
+{
+    float delta_t;
+    float compensation;
+    int8_t rfxtal_eff;
+
+    // Calculate temperature difference from reference
+    delta_t = current_temp - cal_data-&gt;temp_ref;
+
+    // Apply 3rd-order polynomial compensation
+    compensation = cal_data-&gt;c0 + 
+                   (cal_data-&gt;c1 * delta_t) +
+                   (cal_data-&gt;c2 * delta_t * delta_t) +
+                   (cal_data-&gt;c3 * delta_t * delta_t * delta_t);
+
+    // Add to base RFXTAL value and round to nearest integer
+    rfxtal_eff = cal_data-&gt;rfxtal_base + (int8_t)roundf(compensation);
+
+    // Clamp to valid 8-bit signed range
+    if (rfxtal_eff &gt; 127) rfxtal_eff = 127;
+    if (rfxtal_eff &lt; -128) rfxtal_eff = -128;
+
+    return rfxtal_eff;
+}
+
+/**
+ * Temperature compensation update task
+ * Called periodically (e.g., every 5 seconds) or on significant temperature change
+ */
+void rfxtal_temperature_compensation_task(void)
+{
+    float current_temp;
+    int8_t rfxtal_compensated;
+    rfxtal_cal_data_t *cal_data;
+
+    // Read calibration data from OTP/flash
+    cal_data = get_rfxtal_calibration_data();
+
+    // Read current chip temperature from sensor
+    current_temp = read_temperature_sensor();
+
+    // Calculate compensated RFXTAL value
+    rfxtal_compensated = calculate_rfxtal_compensated(cal_data, current_temp);
+
+    // Apply to RF register
+    write_rf_register(RFXTAL_REG_ADDR, rfxtal_compensated);
+}
+</code></pre>
+<br>
+<h3>Example Calculation</h3>
+<br>
+<p>Given calibration data:</p>
+<ul>
+<li><strong>RFXTALbase</strong> = 15</li>
+<li><strong>C₀</strong> = 0.0</li>
+<li><strong>C₁</strong> = -0.0005 (ppm/°C)</li>
+<li><strong>C₂</strong> = -0.000002 (ppm/°C²)</li>
+<li><strong>C₃</strong> = 0.0000001 (ppm/°C³)</li>
+<li><strong>Tref</strong> = 25°C</li>
+</ul>
+<br>
+<p>At <strong>T = 70°C</strong>:</p>
+<br>
+<p>\[ \Delta T = 70 - 25 = 45°C \]</p>
+<br>
+<p>\[ \text{compensation} = 0.0 + (-0.0005 \times 45) + (-0.000002 \times 45^2) + (0.0000001 \times 45^3) \]</p>
+<br>
+<p>\[ = 0.0 - 0.0225 - 0.00405 + 0.0091125 \]</p>
+<br>
+<p>\[ = -0.0174375 \text{ (in RFXTAL steps)} \]</p>
+<br>
+<p>\[ \text{RFXTAL}_{\text{eff}} = 15 + \text{round}(-0.0174) = 15 + 0 = 15 \]</p>
+<br>
+<p>At <strong>T = -20°C</strong>:</p>
+<br>
+<p>\[ \Delta T = -20 - 25 = -45°C \]</p>
+<br>
+<p>\[ \text{compensation} = 0.0 + (-0.0005 \times -45) + (-0.000002 \times 2025) + (0.0000001 \times -91125) \]</p>
+<br>
+<p>\[ = 0.0 + 0.0225 - 0.00405 - 0.0091125 \]</p>
+<br>
+<p>\[ = 0.0093375 \]</p>
+<br>
+<p>\[ \text{RFXTAL}_{\text{eff}} = 15 + \text{round}(0.0093) = 15 + 0 = 15 \]</p>
+<br>
+<h2>Factory Calibration Procedure</h2>
+<br>
+<h3>Measurement Setup</h3>
+<br>
+<ol>
+<li><strong>Equipment</strong>: Calibrated spectrum analyzer, temperature chamber, RF coaxial cable</li>
+<li><strong>Connection</strong>: Conducted mode - antenna port connected directly to spectrum analyzer</li>
+<li><strong>Test Mode</strong>: Firmware CLI command to generate continuous wave (CW) tone</li>
+</ol>
+<br>
+<h3>Calibration Steps</h3>
+<br>
+<h4>Step 1: Room Temperature Calibration</h4>
+<br>
+<ol>
+<li>Set device temperature to 25°C reference point</li>
+<li>Use CLI command to generate CW tone at target channel (e.g., 2.412 GHz for channel 1)</li>
+<li>Measure actual carrier frequency on spectrum analyzer</li>
+<li>Calculate frequency error in kHz and convert to ppm</li>
+<li>Determine RFXTAL correction value to minimize error</li>
+<li>Iterate until frequency error < ±2-5 ppm</li>
+<li>Store RFXTALbase in calibration data</li>
+</ol>
+<br>
+<h4>Step 2: Temperature Characterization</h4>
+<br>
+<ol>
+<li>Set RFXTAL to baseline value from Step 1</li>
+<li>Place device in temperature chamber</li>
+<li>Step through temperature range: -40°C, -20°C, 0°C, 25°C, 50°C, 70°C, 85°C</li>
+<li>At each temperature point:</li>
+</ol>
+<p>   - Generate CW tone</p>
+<p>   - Measure carrier frequency error</p>
+<p>   - Record (temperature, frequency_error) data pair</p>
+<ol>
+<li>Apply polynomial curve fitting to generate C₀, C₁, C₂, C₃ coefficients</li>
+<li>Validate polynomial accuracy at intermediate temperatures</li>
+<li>Store coefficients in calibration data</li>
+</ol>
+<br>
+<h3>CLI Command Example</h3>
+<br>
+<pre><code class="language-bash"># Generate CW tone on channel 1 (2.412 GHz)
+&gt; phy_tx_tone --channel 1 --bandwidth 20
+
+# Read current RFXTAL value
+&gt; rf_read_reg 0x95
+
+# Write new RFXTAL value (example: 0x6D = 109 decimal)
+&gt; rf_write_reg 0x96 0x6D
+
+# Stop tone generation
+&gt; phy_tx_stop
+</code></pre>
+<br>
+<h2>Signal Flow in WLAN Transceiver</h2>
+<br>
+<h3>Transmit Path</h3>
+<br>
+<ol>
+<li><strong>PHY Layer Modulation</strong>: Digital baseband creates OFDM I/Q samples</li>
+<li><strong>DAC Conversion</strong>: I/Q samples converted to analog baseband signals</li>
+<li><strong>Baseband Filtering</strong>: Low-pass filters shape the signals</li>
+<li><strong>RF Upconversion</strong>: Mixer multiplies baseband I/Q with LO carrier → RF signal</li>
+<li><strong>Power Amplification</strong>: RF signal amplified for transmission</li>
+<li><strong>Antenna</strong>: RF signal radiated</li>
+</ol>
+<br>
+<h3>Receive Path</h3>
+<br>
+<ol>
+<li><strong>Antenna</strong>: RF signal received</li>
+<li><strong>LNA</strong>: Low-noise amplification</li>
+<li><strong>RF Downconversion</strong>: Mixer multiplies RF with LO carrier → baseband I/Q</li>
+<li><strong>Baseband Filtering</strong>: Anti-aliasing and channel selection</li>
+<li><strong>ADC Conversion</strong>: Analog I/Q converted to digital samples</li>
+<li><strong>PHY Layer Demodulation</strong>: Digital baseband recovers data</li>
+</ol>
+<br>
+<h3>Where RFXTAL Applies</h3>
+<br>
+<p>The RFXTAL-compensated crystal oscillator feeds the <strong>PLL/VCO</strong> which generates the <strong>Local Oscillator (LO)</strong> signal used in both upconversion (TX) and downconversion (RX) mixers. The LO is always an unmodulated sinusoid at the carrier frequency.</p>
+<br>
+<p>If the LO frequency is incorrect:</p>
+<ul>
+<li><strong>TX</strong>: Entire transmitted signal shifted to wrong frequency</li>
+<li><strong>RX</strong>: CFO destroys OFDM demodulation</li>
+</ul>
+<br>
+<h2>Channel Setting and Frequency Selection</h2>
+<br>
+<h3>MAC to PHY Channel Change</h3>
+<br>
+<p>When the MAC layer requests a channel change, the firmware executes a set_channel operation:</p>
+<br>
+<pre><code class="language-c">/**
+ * Set channel and configure RF chain
+ * 
+ * @param channel_num: Channel number (1-14 for 2.4 GHz, 36-165 for 5 GHz)
+ * @param bandwidth: Channel bandwidth (20, 40, 80, 160 MHz)
+ * @return: 0 on success, error code on failure
+ */
+int set_channel(uint8_t channel_num, uint8_t bandwidth)
+{
+    uint32_t center_freq;
+    uint32_t pll_divider;
+    int8_t rfxtal_compensated;
+    float current_temp;
+
+    // 1. Map channel number to center frequency
+    center_freq = channel_to_frequency(channel_num);
+
+    // 2. Calculate PLL divider ratio
+    // Example: For 2.412 GHz with 40 MHz crystal
+    // Divider = 2412 MHz / 40 MHz = 60.3
+    pll_divider = calculate_pll_divider(center_freq, XTAL_FREQ);
+
+    // 3. Apply temperature-compensated RFXTAL
+    current_temp = read_temperature_sensor();
+    rfxtal_compensated = calculate_rfxtal_compensated(
+        get_rfxtal_calibration_data(), 
+        current_temp
+    );
+    write_rf_register(RFXTAL_REG_ADDR, rfxtal_compensated);
+
+    // 4. Program PLL frequency synthesizer
+    write_rf_register(PLL_INTEGER_DIV_REG, pll_divider &gt;&gt; 16);
+    write_rf_register(PLL_FRACTIONAL_DIV_REG, pll_divider &amp; 0xFFFF);
+    write_rf_register(VCO_BAND_SELECT_REG, select_vco_band(center_freq));
+
+    // 5. Configure loop filter and charge pump
+    write_rf_register(PLL_LOOP_BW_REG, get_loop_bandwidth(bandwidth));
+
+    // 6. Wait for PLL lock
+    if (wait_pll_lock_with_timeout(PLL_LOCK_TIMEOUT_MS) != 0) {
+        return -ERROR_PLL_LOCK_FAIL;
+    }
+
+    // 7. Apply channel-specific TX power calibration
+    apply_tx_power_calibration(channel_num);
+
+    // 8. Apply channel-specific LOFT calibration
+    apply_loft_calibration(channel_num);
+
+    return 0;
+}
+
+/**
+ * Helper function: Convert channel number to frequency in MHz
+ */
+uint32_t channel_to_frequency(uint8_t channel)
+{
+    if (channel &gt;= 1 &amp;&amp; channel &lt;= 14) {
+        // 2.4 GHz band
+        return 2407 + (channel * 5);  // MHz
+    } else if (channel &gt;= 36 &amp;&amp; channel &lt;= 165) {
+        // 5 GHz band
+        return 5000 + (channel * 5);  // MHz
+    }
+    return 0;  // Invalid channel
+}
+</code></pre>
+<br>
+<h3>Frequency Selection Registers</h3>
+<br>
+<p>The RF chain configuration includes:</p>
+<br>
+<ul>
+<li><strong>PLL Divider</strong>: Integer and fractional-N values for frequency synthesis</li>
+<li><strong>VCO Band Select</strong>: Coarse frequency tuning range selection</li>
+<li><strong>Loop Bandwidth</strong>: PLL response speed and phase noise characteristics</li>
+<li><strong>RFXTAL</strong>: Crystal compensation for accurate reference frequency</li>
+</ul>
+<br>
+<h2>Calibration vs Other RF Algorithms</h2>
+<br>
+<h3>RFXTAL vs LOFT Calibration</h3>
+<br>
+<p>| Aspect | RFXTAL Calibration | LOFT Calibration |</p>
+<p>|--------|-------------------|------------------|</p>
+<p>| <strong>Purpose</strong> | Corrects LO frequency error | Cancels LO leakage at RF output |</p>
+<p>| <strong>Error Source</strong> | Crystal oscillator inaccuracy | Imperfect mixer isolation |</p>
+<p>| <strong>Measured Parameter</strong> | Frequency offset (ppm) | DC offset/carrier leakage power |</p>
+<p>| <strong>Calibration Method</strong> | Adjusts crystal capacitance | Injects compensating DC in I/Q paths |</p>
+<p>| <strong>Impact if Uncalibrated</strong> | CFO destroys subcarrier orthogonality | Unwanted carrier tone in spectrum |</p>
+<br>
+<h3>RFXTAL vs LO Bias Calibration</h3>
+<br>
+<p>| Aspect | RFXTAL Calibration | LO Bias Calibration |</p>
+<p>|--------|-------------------|---------------------|</p>
+<p>| <strong>Purpose</strong> | Corrects absolute LO frequency | Corrects I/Q quadrature mismatch in LO |</p>
+<p>| <strong>What's Adjusted</strong> | Crystal loading capacitance | Bias current in I/Q LO branches |</p>
+<p>| <strong>Target</strong> | Carrier frequency accuracy | 90° phase relationship between LOI and LOQ |</p>
+<p>| <strong>Impact</strong> | CFO and frequency error | Sideband image signals, poor image rejection |</p>
+<br>
+<h3>RFXTAL vs Bandgap Calibration</h3>
+<br>
+<ul>
+<li><strong>RFXTAL</strong>: Frequency calibration for RF carrier generation</li>
+<li><strong>Bandgap</strong>: Voltage reference calibration for analog circuits (ADC, DAC, regulators)</li>
+<li><strong>Independent</strong>: Both calibrations exist in WLAN systems but serve different purposes</li>
+</ul>
+<br>
+<h2>Standards Consistency: 802.11n/ax/be</h2>
+<br>
+<p>The RFXTAL calibration process remains <strong>fundamentally the same</strong> across all modern WLAN standards:</p>
+<br>
+<h3>Common Requirements</h3>
+<br>
+<ul>
+<li>±20 ppm frequency tolerance specification</li>
+<li>OFDM-based modulation requiring subcarrier orthogonality</li>
+<li>Crystal oscillator-based LO generation architecture</li>
+<li>CFO sensitivity</li>
+</ul>
+<br>
+<h3>Why Newer Standards Need Better Calibration</h3>
+<br>
+<p>| Feature | 802.11n | 802.11ax | 802.11be |</p>
+<p>|---------|---------|----------|----------|</p>
+<p>| <strong>Max Modulation</strong> | 64-QAM | 1024-QAM | 4096-QAM |</p>
+<p>| <strong>Max Bandwidth</strong> | 40 MHz | 160 MHz | 320 MHz |</p>
+<p>| <strong>CFO Sensitivity</strong> | Moderate | High | Very High |</p>
+<p>| <strong>Multi-Band</strong> | No | Optional | Yes (MLO) |</p>
+<br>
+<p>Higher-order modulations (1024-QAM, 4096-QAM) are more sensitive to phase noise and frequency errors. Wider bandwidths (160 MHz, 320 MHz) magnify the impact of frequency errors. Multi-Link Operation (MLO) in 802.11be requires accurate simultaneous frequency generation across multiple RF chains.</p>
+<br>
+<h2>Best Practices for Firmware Engineers</h2>
+<br>
+<h3>1. Temperature Monitoring Strategy</h3>
+<br>
+<ul>
+<li>Update RFXTAL compensation periodically (every 5-10 seconds)</li>
+<li>Update on significant temperature delta (>5°C change)</li>
+<li>Avoid updating during critical packet transmission</li>
+</ul>
+<br>
+<h3>2. Calibration Data Validation</h3>
+<br>
+<pre><code class="language-c">/**
+ * Validate calibration data integrity
+ */
+bool validate_rfxtal_calibration(const rfxtal_cal_data_t *cal_data)
+{
+    // Check RFXTAL base value is in valid range
+    if (cal_data-&gt;rfxtal_base &lt; -128 || cal_data-&gt;rfxtal_base &gt; 127) {
+        return false;
+    }
+
+    // Check coefficients are reasonable (platform-specific limits)
+    if (fabs(cal_data-&gt;c1) &gt; 0.01 || 
+        fabs(cal_data-&gt;c2) &gt; 0.001 || 
+        fabs(cal_data-&gt;c3) &gt; 0.0001) {
+        return false;
+    }
+
+    // Check reference temperature is reasonable
+    if (cal_data-&gt;temp_ref &lt; 0 || cal_data-&gt;temp_ref &gt; 50) {
+        return false;
+    }
+
+    return true;
+}
+</code></pre>
+<br>
+<h3>3. Error Handling</h3>
+<br>
+<ul>
+<li>Implement fallback to default RFXTAL if calibration data is corrupted</li>
+<li>Log calibration application failures for debug analysis</li>
+<li>Provide CLI commands for manual RFXTAL override during development</li>
+</ul>
+<br>
+<h3>4. Testing and Validation</h3>
+<br>
+<ul>
+<li>Verify frequency accuracy with spectrum analyzer across temperature range</li>
+<li>Test channel switching time to ensure PLL lock meets timing requirements</li>
+<li>Validate that temperature compensation reduces frequency drift</li>
+</ul>
+<br>
+<h2>Conclusion</h2>
+<br>
+<p>RFXTAL frequency calibration is a foundational algorithm in WLAN PHY firmware that ensures accurate carrier frequency generation across manufacturing variations and operating conditions. Understanding the two-stage compensation strategy (factory baseline + runtime temperature adjustment) is essential for firmware engineers working on 802.11 wireless systems.</p>
+<br>
+<p>As you work with newer standards like 802.11ax and 802.11be, the importance of precise frequency calibration only increases due to higher modulation orders and wider bandwidths. The same calibration principles and implementation patterns apply across all OFDM-based WLAN standards, making this knowledge directly transferable to next-generation Wi-Fi development.</p>
+<br>
+<h2>References and Further Reading</h2>
+<br>
+<ul>
+<li>IEEE 802.11 Standard (PHY layer specifications)</li>
+<li>NXP Application Notes: AN12794 (IW416 Calibration), AN13639 (Thermal Compensation)</li>
+<li>Silicon Labs AN1436: Crystal Calibration Application Note</li>
+<li>RF transceiver datasheets for your specific platform</li>
+<li>OFDM theory and carrier frequency offset analysis papers</li>
+</ul>
+<br>
+<hr>
+<br>
+<p><em>This article is based on practical experience with WLAN firmware development and RF calibration procedures. Specific register addresses, coefficient ranges, and implementation details may vary by platform. Always consult your RF IC datasheet and calibration specification.</em></p>
+<br>
+
+    </div>
+</body>
+</html>
