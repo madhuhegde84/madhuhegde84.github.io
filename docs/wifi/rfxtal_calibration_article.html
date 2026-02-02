@@ -520,19 +520,19 @@ void rfxtal_temperature_compensation_task(void)
 <li>Store coefficients in calibration data</li>
 </ol>
 
-<h3>CLI Command Example</h3>
+<h3>CLI Command can be shown as below. </h3>
 
-<pre><code class="language-bash"># Generate CW tone on channel 1 (2.412 GHz)
-&gt; phy_tx_tone --channel 1 --bandwidth 20
+<pre><code class="language-bash"># Generate CW tone on channel 1 (2.412 GHz) this is example only check device registers of the soc for the correct tuning register address
+&gt; phy_tx_tone_tuning --channel 1 --bandwidth 20
 
 # Read current RFXTAL value
-&gt; rf_read_reg 0x95
+&gt; rf_freq_read_register 0x95
 
 # Write new RFXTAL value (example: 0x6D = 109 decimal)
-&gt; rf_write_reg 0x96 0x6D
+&gt; rf_freq_write_register 0x96 0x6D
 
 # Stop tone generation
-&gt; phy_tx_stop
+&gt; phy_transmit_stop
 </code></pre>
 
 <h2>Signal Flow in WLAN Transceiver</h2>
