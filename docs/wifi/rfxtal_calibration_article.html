@@ -372,77 +372,6 @@
 <li><strong>C₃</strong>: Float or fixed-point (cubic coefficient, typically ~10⁻⁷ to 10⁻⁸ range)</li>
 </ul>
 
-<h3>Typical Firmware Implementation example reference (This is reference only example- depends on the system</h3>
-
-<pre><code class="language-c">/**
- * Temperature compensation structure stored in calibration data
- */
-typedef struct {
-    int8_t   rfxtal_base;    // Base RFXTAL value at 25°C
-    float    c0;             // Constant coefficient
-    float    c1;             // Linear coefficient (ppm/°C)
-    float    c2;             // Quadratic coefficient (ppm/°C²)
-    float    c3;             // Cubic coefficient (ppm/°C³)
-    int8_t   temp_ref;       // Reference temperature (typically 25°C)
-} rfxtal_cal_data_t;
-
-/**
- * Calculate temperature-compensated RFXTAL value
- * 
- * @param cal_data: Pointer to calibration data structure
- * @param current_temp: Current temperature in degrees Celsius
- * @return: Compensated RFXTAL value (8-bit signed integer)
- */
-int8_t calculate_rfxtal_compensated(const rfxtal_cal_data_t *cal_data, 
-                                    float current_temp)
-{
-    float delta_t;
-    float compensation;
-    int8_t rfxtal_eff;
-
-    // Calculate temperature difference from reference
-    delta_t = current_temp - cal_data-&gt;temp_ref;
-
-    // Apply 3rd-order polynomial compensation
-    compensation = cal_data-&gt;c0 + 
-                   (cal_data-&gt;c1 * delta_t) +
-                   (cal_data-&gt;c2 * delta_t * delta_t) +
-                   (cal_data-&gt;c3 * delta_t * delta_t * delta_t);
-
-    // Add to base RFXTAL value and round to nearest integer
-    rfxtal_eff = cal_data-&gt;rfxtal_base + (int8_t)roundf(compensation);
-
-    // Clamp to valid 8-bit signed range
-    if (rfxtal_eff &gt; 127) rfxtal_eff = 127;
-    if (rfxtal_eff &lt; -128) rfxtal_eff = -128;
-
-    return rfxtal_eff;
-}
-
-/**
- * Temperature compensation update task
- * Called periodically (e.g., every 7 or 8 seconds) or on significant temperature change
- */
-void rfxtal_temperature_compensation_task(void)
-{
-    float current_temp;
-    int8_t rfxtal_compensated;
-    rfxtal_cal_data_t *cal_data;
-
-    // Read calibration data (non volatile storage)
-    cal_data = get_rfxtal_calibration_data();
-
-    // Read current chip temperature from sensor
-    current_temp = read_temperature_sensor();
-
-    // Calculate compensated RFXTAL value
-    rfxtal_compensated = calculate_rfxtal_compensated(cal_data, current_temp);
-
-    // Apply to RF register
-    write_register(RFXTAL_REG_ADDR, rfxtal_compensated);
-}
-</code></pre>
-
 <h3>Example Calculation</h3>
 
 <p>Given calibration data:</p>
@@ -571,77 +500,6 @@ void rfxtal_temperature_compensation_task(void)
 
 <h2>Channel Setting and Frequency Selection</h2>
 
-<h3>MAC to PHY Channel Change</h3>
-
-<p>When the MAC layer requests a channel change, the firmware executes a set_channel operation:</p>
-
-<pre><code class="language-c">/**
- * Set channel and configure RF chain
- * 
- * @param channel_num: Channel number (1-14 for 2.4 GHz, 36-165 for 5 GHz)
- * @param bandwidth: Channel bandwidth (20, 40, 80, 160 MHz)
- * @return: 0 on success, error code on failure
- */
-int set_channel_number_configure_tx_rf_chain(uint8_t channel_num, uint8_t bandwidth)
-{
-    uint32_t center_freq;
-    uint32_t pll_divider;
-    int8_t rfxtal_compensated;
-    float current_temp;
-
-    // 1. Map channel number to center frequency
-    center_freq = channel_to_frequency(channel_num);
-
-    // 2. Calculate PLL divider ratio
-    // Example: For 2.412 GHz with 40 MHz crystal
-    // Divider = 2412 MHz / 40 MHz = 60.3
-    pll_divider = calculate_pll_divider(center_freq, XTAL_FREQ);
-
-    // 3. Apply temperature-compensated RFXTAL
-    current_temp = read_temperature_sensor();
-    rfxtal_compensated = calculate_rfxtal_compensated(
-        get_rfxtal_calibration_data(), 
-        current_temp
-    );
-    write_rf_register(RFXTAL_REG_ADDR, rfxtal_compensated);
-
-    // 4. Program PLL frequency synthesizer
-    write_register(PLL_INTEGER_DIV_REG, pll_divider &gt;&gt; 16);
-    write_register(PLL_FRACTIONAL_DIV_REG, pll_divider &amp; 0xFFFF);
-    write_register(VCO_BAND_SELECT_REG, select_vco_band(center_freq));
-
-    // 5. Configure loop filter and charge pump
-    write_register(PLL_LOOP_BW_REG, get_loop_bandwidth(bandwidth));
-
-    // 6. Wait for PLL lock
-    if (wait_pll_lock_with_timeout(PLL_LOCK_TIMEOUT_MS) != 0) {
-        return -ERROR_PLL_LOCK_FAIL;
-    }
-
-    // 7. Apply channel-specific TX power calibration
-    apply_tx_power_calibration(channel_num);
-
-    // 8. Apply channel-specific LOFT calibration
-    apply_loft_calibration(channel_num);
-
-    return 0;
-}
-
-/**
- * Helper function: Convert channel number to frequency in MHz
- */
-uint32_t channel_to_frequency(uint8_t channel)
-{
-    if (channel &gt;= 1 &amp;&amp; channel &lt;= 14) {
-        // 2.4 GHz band
-        return 2407 + (channel * 5);  // MHz
-    } else if (channel &gt;= 36 &amp;&amp; channel &lt;= 165) {
-        // 5 GHz band
-        return 5000 + (channel * 5);  // MHz
-    }
-    return 0;  // Invalid channel
-}
-</code></pre>
 
 <h3>Frequency Selection Registers</h3>
 
@@ -765,7 +623,7 @@ bool validate_rfxtal_calibration(const rfxtal_cal_data_t *cal_data)
 
 <p>RFXTAL frequency calibration is a foundational algorithm in WLAN PHY firmware that ensures accurate carrier frequency generation across manufacturing variations and operating conditions. Understanding the two-stage compensation strategy (factory baseline + runtime temperature adjustment) is essential for firmware engineers working on 802.11 wireless systems.</p>
 
-<p>As you work with newer standards like 802.11ax and 802.11be, the importance of precise frequency calibration only increases due to higher modulation orders and wider bandwidths. The same calibration principles and implementation patterns apply across all OFDM-based WLAN standards, making this knowledge directly transferable to next-generation Wi-Fi development.</p>
+<p>Newer standards like 802.11ax and 802.11be, the importance of precise frequency calibration only increases due to higher modulation orders and wider bandwidths. The same calibration principles and implementation patterns apply across all OFDM-based WLAN standards, making this knowledge directly transferable to next-generation Wi-Fi development.</p>
 
 
     </div>
