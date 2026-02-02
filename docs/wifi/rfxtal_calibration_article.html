@@ -200,7 +200,7 @@
 
 <h2>Introduction</h2>
 
-<p>Frequency calibration is a critical algorithm in the WLAN PHY layer that ensures accurate carrier frequency generation for wireless communication. This calibration compensates for crystal oscillator inaccuracies and frequency drift across Process, Voltage, and Temperature (PVT) variations. Even small frequency errors can destroy OFDM subcarrier orthogonality, leading to inter-carrier interference and packet loss.</p>
+<p>Frequency calibration is a critical algorithm in the WLAN PHY layer that ensures accurate carrier frequency generation for wireless communication. This calibration compensates for crystal oscillator inaccuracies and frequency drift across Process, Voltage, and Temperature (PVT) variations. Even small frequency errors can destroy OFDM subcarrier orthogonality, leading to interference and packet loss.</p>
 
 <h2>Purpose of Frequency Calibration</h2>
 
@@ -372,7 +372,7 @@
 <li><strong>C₃</strong>: Float or fixed-point (cubic coefficient, typically ~10⁻⁷ to 10⁻⁸ range)</li>
 </ul>
 
-<h3>Firmware Implementation</h3>
+<h3>Typical Firmware Implementation example reference (This is reference only example- depends on the system</h3>
 
 <pre><code class="language-c">/**
  * Temperature compensation structure stored in calibration data
@@ -421,7 +421,7 @@ int8_t calculate_rfxtal_compensated(const rfxtal_cal_data_t *cal_data,
 
 /**
  * Temperature compensation update task
- * Called periodically (e.g., every 5 seconds) or on significant temperature change
+ * Called periodically (e.g., every 7 or 8 seconds) or on significant temperature change
  */
 void rfxtal_temperature_compensation_task(void)
 {
@@ -429,7 +429,7 @@ void rfxtal_temperature_compensation_task(void)
     int8_t rfxtal_compensated;
     rfxtal_cal_data_t *cal_data;
 
-    // Read calibration data from OTP/flash
+    // Read calibration data (non volatile storage)
     cal_data = get_rfxtal_calibration_data();
 
     // Read current chip temperature from sensor
@@ -439,7 +439,7 @@ void rfxtal_temperature_compensation_task(void)
     rfxtal_compensated = calculate_rfxtal_compensated(cal_data, current_temp);
 
     // Apply to RF register
-    write_rf_register(RFXTAL_REG_ADDR, rfxtal_compensated);
+    write_register(RFXTAL_REG_ADDR, rfxtal_compensated);
 }
 </code></pre>
 
@@ -582,7 +582,7 @@ void rfxtal_temperature_compensation_task(void)
  * @param bandwidth: Channel bandwidth (20, 40, 80, 160 MHz)
  * @return: 0 on success, error code on failure
  */
-int set_channel(uint8_t channel_num, uint8_t bandwidth)
+int set_channel_number_configure_tx_rf_chain(uint8_t channel_num, uint8_t bandwidth)
 {
     uint32_t center_freq;
     uint32_t pll_divider;
@@ -606,12 +606,12 @@ int set_channel(uint8_t channel_num, uint8_t bandwidth)
     write_rf_register(RFXTAL_REG_ADDR, rfxtal_compensated);
 
     // 4. Program PLL frequency synthesizer
-    write_rf_register(PLL_INTEGER_DIV_REG, pll_divider &gt;&gt; 16);
-    write_rf_register(PLL_FRACTIONAL_DIV_REG, pll_divider &amp; 0xFFFF);
-    write_rf_register(VCO_BAND_SELECT_REG, select_vco_band(center_freq));
+    write_register(PLL_INTEGER_DIV_REG, pll_divider &gt;&gt; 16);
+    write_register(PLL_FRACTIONAL_DIV_REG, pll_divider &amp; 0xFFFF);
+    write_register(VCO_BAND_SELECT_REG, select_vco_band(center_freq));
 
     // 5. Configure loop filter and charge pump
-    write_rf_register(PLL_LOOP_BW_REG, get_loop_bandwidth(bandwidth));
+    write_register(PLL_LOOP_BW_REG, get_loop_bandwidth(bandwidth));
 
     // 6. Wait for PLL lock
     if (wait_pll_lock_with_timeout(PLL_LOCK_TIMEOUT_MS) != 0) {
