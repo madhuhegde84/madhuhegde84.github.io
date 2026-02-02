@@ -449,21 +449,6 @@
 <li>Store coefficients in calibration data</li>
 </ol>
 
-<h3>CLI Command can be shown as below. </h3>
-
-<pre><code class="language-bash"># Generate CW tone on channel 1 (2.412 GHz) this is example only check device registers of the soc for the correct tuning register address
-&gt; phy_tx_tone_tuning --channel 1 --bandwidth 20
-
-# Read current RFXTAL value
-&gt; rf_freq_read_register 0x95
-
-# Write new RFXTAL value (example: 0x6D = 109 decimal)
-&gt; rf_freq_write_register 0x96 0x6D
-
-# Stop tone generation
-&gt; phy_transmit_stop
-</code></pre>
-
 <h2>Signal Flow in WLAN Transceiver</h2>
 
 <h3>Transmit Path</h3>
@@ -575,33 +560,6 @@
 <li>Avoid updating during critical packet transmission</li>
 </ul>
 
-<h3>2. Calibration Data Validation</h3>
-
-<pre><code class="language-c">/**
- * Validate calibration data integrity
- */
-bool validate_rfxtal_calibration(const rfxtal_cal_data_t *cal_data)
-{
-    // Check RFXTAL base value is in valid range
-    if (cal_data-&gt;rfxtal_base &lt; -128 || cal_data-&gt;rfxtal_base &gt; 127) {
-        return false;
-    }
-
-    // Check coefficients are reasonable (platform-specific limits)
-    if (fabs(cal_data-&gt;c1) &gt; 0.01 || 
-        fabs(cal_data-&gt;c2) &gt; 0.001 || 
-        fabs(cal_data-&gt;c3) &gt; 0.0001) {
-        return false;
-    }
-
-    // Check reference temperature is reasonable
-    if (cal_data-&gt;temp_ref &lt; 0 || cal_data-&gt;temp_ref &gt; 50) {
-        return false;
-    }
-
-    return true;
-}
-</code></pre>
 
 <h3>3. Error Handling</h3>
 
