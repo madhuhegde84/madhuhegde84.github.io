@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Queue Implementation using Array (Circular)</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      color: #333;
+      background-color: #f9f9f9;
+    }
+    .container {
+      background-color: white;
+      padding: 40px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+    h1 {
+      color: #2c3e50;
+      border-bottom: 3px solid #3498db;
+      padding-bottom: 10px;
+      font-size: 2.2em;
+    }
+    h2 {
+      color: #34495e;
+      margin-top: 30px;
+      font-size: 1.8em;
+      border-bottom: 2px solid #ecf0f1;
+      padding-bottom: 8px;
+    }
+    h3 {
+      color: #546e7a;
+      margin-top: 20px;
+      font-size: 1.4em;
+    }
+    code {
+      background-color: #f4f4f4;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.9em;
+      color: #c7254e;
+    }
+    pre {
+      background-color: #282c34;
+      color: #abb2bf;
+      padding: 20px;
+      border-radius: 5px;
+      overflow-x: auto;
+      border-left: 4px solid #3498db;
+    }
+    pre code {
+      background-color: transparent;
+      color: #abb2bf;
+      padding: 0;
+    }
+    ul, ol {
+      margin: 15px 0;
+      padding-left: 30px;
+    }
+    li {
+      margin: 8px 0;
+    }
+    strong {
+      color: #2c3e50;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+    }
+    th {
+      background-color: #3498db;
+      color: white;
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+    }
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #ecf0f1;
+    }
+    tr:nth-child(even) { background-color: #f8f9fa; }
+    tr:hover { background-color: #e8f4f8; }
+    .result-box {
+      background-color: #eaf4fb;
+      border-left: 5px solid #3498db;
+      border-radius: 6px;
+      padding: 18px 24px;
+      margin: 24px 0;
+      font-size: 1.05em;
+    }
+    .result-box strong { color: #1a6fa8; }
+    blockquote {
+      border-left: 4px solid #3498db;
+      padding-left: 20px;
+      margin: 20px 0;
+      color: #555;
+      font-style: italic;
+    }
+    hr {
+      border: none;
+      border-top: 2px solid #ecf0f1;
+      margin: 30px 0;
+    }
+    @media (max-width: 768px) {
+      body { padding: 10px; }
+      .container { padding: 20px; }
+      h1 { font-size: 1.8em; }
+      h2 { font-size: 1.5em; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <h1>Queue Implementation using Array</h1>
+  <p>Focusing on the <strong>Circular Queue</strong> pattern &mdash; the standard for high-performance firmware buffering, RTOS message passing, and WLAN frame management.</p>
+
+  <hr>
+
+  <h2>1. What is a Queue?</h2>
+  <p>A <strong>queue</strong> is a linear data structure following the <strong>FIFO (First-In-First-Out)</strong> principle. Elements are added at the <code>rear</code> and removed from the <code>front</code>. In firmware, a "simple" linear queue is rarely used because it requires O(n) element shifting; instead, we use a <strong>Circular Queue</strong> (Ring Buffer).</p>
+
+  <div class="result-box">
+    <strong>Core principle:</strong> Circular queues use modulo arithmetic to wrap the <code>rear</code> and <code>front</code> indices back to zero when they reach the array's end, achieving true O(1) operations without shifting data.
+  </div>
+
+  <h2>2. Core Structure</h2>
+  <p>A circular queue typically tracks:</p>
+  <ul>
+    <li><code>int *arr</code> &mdash; Pointer to the underlying fixed-size buffer.</li>
+    <li><code>int capacity</code> &mdash; Maximum buffer size.</li>
+    <li><code>int front</code> &mdash; Read index (next element to be removed).</li>
+    <li><code>int rear</code> &mdash; Write index (next position to insert).</li>
+    <li><em>Optional:</em> <code>int count</code> &mdash; Tracks current number of elements (simplifies full/empty logic).</li>
+  </ul>
+
+  <h2>3. Key Operations (Circular Pattern)</h2>
+
+  <h3>Enqueue (Insert)</h3>
+  <ul>
+    <li><strong>Check Full:</strong> If <code>(rear + 1) % capacity == front</code>, the buffer is full.</li>
+    <li><strong>Store:</strong> <code>arr[rear] = x;</code></li>
+    <li><strong>Advance Rear:</strong> <code>rear = (rear + 1) % capacity;</code></li>
+    <li><strong>Time complexity:</strong> O(1)</li>
+  </ul>
+
+  <h3>Dequeue (Remove)</h3>
+  <ul>
+    <li><strong>Check Empty:</strong> If <code>front == rear</code>, the buffer is empty.</li>
+    <li><strong>Retrieve:</strong> <code>int val = arr[front];</code></li>
+    <li><strong>Advance Front:</strong> <code>front = (front + 1) % capacity;</code></li>
+    <li><strong>Time complexity:</strong> O(1)</li>
+  </ul>
+
+  <h3>Full vs. Empty Logic</h3>
+  <p>In the common "one slot unused" implementation:</p>
+  <ul>
+    <li><strong>Empty:</strong> <code>front == rear</code></li>
+    <li><strong>Full:</strong> <code>(rear + 1) % capacity == front</code></li>
+  </ul>
+
+  <h2>4. C Implementation (Circular Ring Buffer)</h2>
+  <pre><code>#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+typedef struct {
+    int *arr;
+    int capacity;
+    int front;
+    int rear;
+} CircularQueue;
+
+CircularQueue* createQueue(int cap) {
+    CircularQueue* q = (CircularQueue*)malloc(sizeof(CircularQueue));
+    q-&gt;capacity = cap;
+    q-&gt;arr = (int*)malloc(cap * sizeof(int));
+    q-&gt;front = 0;
+    q-&gt;rear = 0;
+    return q;
+}
+
+void enqueue(CircularQueue* q, int x) {
+    if ((q-&gt;rear + 1) % q-&gt;capacity == q-&gt;front) {
+        printf("Queue Full (Overflow)
+");
+        return;
+    }
+    q-&gt;arr[q-&gt;rear] = x;
+    q-&gt;rear = (q-&gt;rear + 1) % q-&gt;capacity;
+}
+
+int dequeue(CircularQueue* q) {
+    if (q-&gt;front == q-&gt;rear) {
+        printf("Queue Empty (Underflow)
+");
+        return -1;
+    }
+    int val = q-&gt;arr[q-&gt;front];
+    q-&gt;front = (q-&gt;front + 1) % q-&gt;capacity;
+    return val;
+}
+
+int peek(CircularQueue* q) {
+    if (q-&gt;front == q-&gt;rear) return -1;
+    return q-&gt;arr[q-&gt;front];
+}
+
+int isEmpty(CircularQueue* q) {
+    return q-&gt;front == q-&gt;rear;
+}
+
+int isFull(CircularQueue* q) {
+    return (q-&gt;rear + 1) % q-&gt;capacity == q-&gt;front;
+}</code></pre>
+
+  <h2>5. Complexity Analysis</h2>
+  <table>
+    <tr><th>Operation</th><th>Time Complexity</th><th>Notes</th></tr>
+    <tr><td>Enqueue</td><td>O(1)</td><td>Single modulo + store</td></tr>
+    <tr><td>Dequeue</td><td>O(1)</td><td>Single modulo + read</td></tr>
+    <tr><td>Full/Empty Check</td><td>O(1)</td><td>Comparison</td></tr>
+    <tr><td>Linear Queue Dequeue</td><td>O(n)</td><td>If shifting elements via memmove</td></tr>
+  </table>
+
+  <h2>6. Advantages vs Disadvantages</h2>
+  <table>
+    <tr><th>Aspect</th><th>Advantages</th><th>Disadvantages</th></tr>
+    <tr><td>Efficiency</td><td>True O(1) for both ends; no wasted space in circular pattern</td><td>One slot always empty (unless using a count variable)</td></tr>
+    <tr><td>Memory</td><td>Contiguous buffer; excellent for DMA and hardware locality</td><td>Fixed size &mdash; requires careful sizing for peak bursts</td></tr>
+    <tr><td>Firmware Use</td><td>Standard for "Producer-Consumer" patterns</td><td>Requires modulo ops (use power-of-2 size for &amp; mask optimization)</td></tr>
+  </table>
+
+  <h2>7. Firmware/Embedded Use Cases</h2>
+  <ul>
+    <li><strong>UART/SPI RX Buffers:</strong> UART ISR pushes to ring buffer; main task pops to process.</li>
+    <li><strong>WLAN Packet Queues:</strong> Buffering TX frames between the host driver and the PHY DMA engine.</li>
+    <li><strong>RTOS Message Queues:</strong> Passing data between tasks safely (with mutex/semaphore protection).</li>
+    <li><strong>Sensor Data Logging:</strong> Continuous sampling where old data is overwritten or processed in batches.</li>
+    <li><strong>Audio Streaming:</strong> Circular buffers for PCM data to prevent playback underflow/stutter.</li>
+  </ul>
+
+  <h2>8. Interview Traps and Advanced Topics</h2>
+  <ul>
+    <li><strong>Power-of-2 Optimization:</strong> If capacity is 2^n, <code>(i + 1) % capacity</code> can be replaced with <code>(i + 1) &amp; (capacity - 1)</code>. This is much faster on CPUs without hardware division (like some Cortex-M0/M3).</li>
+    <li><strong>Atomic Access:</strong> In a single-producer/single-consumer model, if <code>front</code> and <code>rear</code> are modified by only one side each, the queue can often be <strong>lock-free</strong> (using <code>volatile</code> and barriers).</li>
+    <li><strong>Cache Coherency:</strong> When used with DMA, the ring buffer must be in non-cacheable memory or manually invalidated/flushed.</li>
+    <li><strong>Full vs Empty ambiguity:</strong> If <code>front == rear</code> is used for both, you must either: (1) Leave one slot empty, (2) Use a <code>count</code> variable, or (3) Use a <code>is_full</code> flag.</li>
+    <li><strong>DMA Descriptor Management:</strong> Hardware DMA controllers often use "Own" bits in a circular array of descriptors &mdash; this is effectively a hardware-managed circular queue.</li>
+  </ul>
+
+  <hr>
+
+  <h2>Quick Reference Summary</h2>
+  <table>
+    <tr><th>Property</th><th>Circular Implementation Pattern</th></tr>
+    <tr><td>Principle</td><td>FIFO (First-In-First-Out)</td></tr>
+    <li>Buffer management</li><td><code>front</code> (read), <code>rear</code> (write), modulo wrapping</td></tr>
+    <tr><td>Empty condition</td><td><code>front == rear</code></td></tr>
+    <tr><td>Full condition</td><td><code>(rear + 1) % capacity == front</code></td></tr>
+    <tr><td>Performance</td><td>O(1) for all operations</td></tr>
+    <tr><td>Optimization</td><td>Use power-of-2 size + bitwise AND mask</td></tr>
+    <tr><td>Embedded role</td><td>Asynchronous communication between ISR and Tasks</td></tr>
+  </table>
+
+  <blockquote>
+    <strong>Interview tip:</strong> When asked about "Ring Buffers" vs "Queues," explain that a Ring Buffer <em>is</em> a Circular Queue. Emphasize the <strong>lock-free</strong> potential of a single-producer/single-consumer circular queue &mdash; this demonstrates high-level firmware architectural knowledge.
+  </blockquote>
+
+</div>
+</body>
+</html>
