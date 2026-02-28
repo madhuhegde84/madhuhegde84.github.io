@@ -3,14 +3,276 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WLAN PHY data rate calculation</title>
+    <title>WLAN PHY Data Rate Calculation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+            background-color: #f9f9f9;
+        }
+        .container {
+            background-color: white;
+            padding: 40px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+            font-size: 2.2em;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+            font-size: 1.8em;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 8px;
+        }
+        h3 {
+            color: #546e7a;
+            margin-top: 20px;
+            font-size: 1.4em;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9em;
+            color: #c7254e;
+        }
+        pre {
+            background-color: #282c34;
+            color: #abb2bf;
+            padding: 20px;
+            border-radius: 5px;
+            overflow-x: auto;
+            border-left: 4px solid #3498db;
+        }
+        pre code {
+            background-color: transparent;
+            color: #abb2bf;
+            padding: 0;
+        }
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 8px 0;
+        }
+        strong {
+            color: #2c3e50;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        tr:hover {
+            background-color: #e8f4f8;
+        }
+        .math-block {
+            background-color: #f8f9fa;
+            padding: 15px;
+            margin: 20px 0;
+            border-left: 4px solid #16a085;
+            border-radius: 4px;
+            overflow-x: auto;
+            text-align: center;
+        }
+        .result-box {
+            background-color: #eaf4fb;
+            border-left: 5px solid #3498db;
+            border-radius: 6px;
+            padding: 18px 24px;
+            margin: 24px 0;
+            font-size: 1.1em;
+        }
+        .result-box strong {
+            color: #1a6fa8;
+        }
+        blockquote {
+            border-left: 4px solid #3498db;
+            padding-left: 20px;
+            margin: 20px 0;
+            color: #555;
+            font-style: italic;
+        }
+        hr {
+            border: none;
+            border-top: 2px solid #ecf0f1;
+            margin: 30px 0;
+        }
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .container { padding: 20px; }
+            h1 { font-size: 1.8em; }
+            h2 { font-size: 1.5em; }
+        }
+    </style>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['\\(', '\\)']],
+                displayMath: [['\\[', '\\]']],
+                processEscapes: true
+            },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
 </head>
 <body>
-    <article>
-        <h1>WLAN PHY data rate calculation</h1>
-        <section>
-            <p>Example consider 64 QAM and 5/6 coding rate and short GI and 20MHz only channel with single antenna. Step by step derive data rate as follows:</p>
-        </section>
-    </article>
+<div class="container">
+    <h1>WLAN PHY Data Rate Calculation</h1>
+
+    <p>
+        Example: consider 64-QAM and 5/6 coding rate and short GI and 20 MHz only channel with single antenna.
+        Step by step derive data rate as follows:
+    </p>
+
+    <div class="result-box">
+        <strong>Result: Data rate = 72.2 Mbps</strong> &mdash; This is MCS 7 (64-QAM, R=5/6) for 802.11n HT20, 1 Spatial Stream, Short GI.
+    </div>
+
+    <h2>Step-by-Step Derivation</h2>
+
+    <h3>Step 1: Data Subcarriers</h3>
+    <p>
+        For an HT20 (20 MHz) channel in 802.11n, there are <strong>52 data subcarriers</strong>.
+    </p>
+    <div class="math-block">
+        \[ N_{SD} = 52 \]
+    </div>
+
+    <h3>Step 2: Bits per Subcarrier (BPSCS)</h3>
+    <p>
+        64-QAM encodes <strong>6 bits per subcarrier</strong> (since \(\log_2(64) = 6\)).
+    </p>
+    <div class="math-block">
+        \[ BPSCS = 6 \text{ bits/subcarrier} \]
+    </div>
+
+    <h3>Step 3: Coded Bits per OFDM Symbol (N_CBPS)</h3>
+    <p>
+        The total coded bits per OFDM symbol is the product of data subcarriers and bits per subcarrier:
+    </p>
+    <div class="math-block">
+        \[ N_{CBPS} = N_{SD} \times BPSCS = 52 \times 6 = 312 \text{ coded bits} \]
+    </div>
+
+    <h3>Step 4: Information Bits per OFDM Symbol (N_DBPS)</h3>
+    <p>
+        With coding rate \(R = 5/6\), only a fraction of bits carry actual data (the rest are redundancy for error correction):
+    </p>
+    <div class="math-block">
+        \[ N_{DBPS} = N_{CBPS} \times R = 312 \times \frac{5}{6} = 260 \text{ bits} \]
+    </div>
+
+    <h3>Step 5: OFDM Symbol Duration (T_SYM, Short GI)</h3>
+    <p>
+        Each OFDM symbol consists of a data interval and a Guard Interval (GI). With <strong>Short GI</strong>:
+    </p>
+    <div class="math-block">
+        \[ T_{SYM} = 3.2\,\mu s + 0.4\,\mu s = 3.6\,\mu s \]
+    </div>
+    <p>
+        (Compare: Long GI uses 0.8 &mu;s, giving T<sub>SYM</sub> = 4.0 &mu;s.)
+    </p>
+
+    <h3>Step 6: Symbols per Second</h3>
+    <p>
+        The number of OFDM symbols transmitted per second:
+    </p>
+    <div class="math-block">
+        \[ \text{Symbols/sec} = \frac{1}{T_{SYM}} = \frac{1}{3.6 \times 10^{-6}} \approx 277{,}777.78 \text{ symbols/sec} \]
+    </div>
+
+    <h3>Step 7: PHY Data Rate</h3>
+    <p>
+        Finally, the PHY data rate is the product of information bits per symbol and symbols per second:
+    </p>
+    <div class="math-block">
+        \[ \text{Rate} = N_{DBPS} \times \text{Symbols/sec} = 260 \times 277{,}777.78 \approx \mathbf{72.2\,Mbps} \]
+    </div>
+
+    <hr>
+
+    <h2>Summary Table</h2>
+    <table>
+        <tr>
+            <th>Parameter</th>
+            <th>Value</th>
+            <th>Notes</th>
+        </tr>
+        <tr>
+            <td>MCS Index</td>
+            <td>MCS 7</td>
+            <td>802.11n HT20, 1 SS</td>
+        </tr>
+        <tr>
+            <td>Modulation</td>
+            <td>64-QAM</td>
+            <td>6 bits/subcarrier</td>
+        </tr>
+        <tr>
+            <td>Coding Rate (R)</td>
+            <td>5/6</td>
+            <td>&mdash;</td>
+        </tr>
+        <tr>
+            <td>Data Subcarriers (N<sub>SD</sub>)</td>
+            <td>52</td>
+            <td>HT20 channel</td>
+        </tr>
+        <tr>
+            <td>Coded Bits/Symbol (N<sub>CBPS</sub>)</td>
+            <td>312</td>
+            <td>52 &times; 6</td>
+        </tr>
+        <tr>
+            <td>Data Bits/Symbol (N<sub>DBPS</sub>)</td>
+            <td>260</td>
+            <td>312 &times; 5/6</td>
+        </tr>
+        <tr>
+            <td>Guard Interval</td>
+            <td>Short (0.4 &mu;s)</td>
+            <td>&mdash;</td>
+        </tr>
+        <tr>
+            <td>Symbol Duration (T<sub>SYM</sub>)</td>
+            <td>3.6 &mu;s</td>
+            <td>3.2 + 0.4 &mu;s</td>
+        </tr>
+        <tr>
+            <td><strong>PHY Data Rate</strong></td>
+            <td><strong>72.2 Mbps</strong></td>
+            <td>260 &times; 277,777.78</td>
+        </tr>
+    </table>
+
+</div>
 </body>
 </html>
