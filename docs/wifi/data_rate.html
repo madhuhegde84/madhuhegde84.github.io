@@ -273,6 +273,140 @@
         </tr>
     </table>
 
+    <hr>
+
+    <!-- 802.11ax Section -->
+    <h2>802.11ax (Wi-Fi 6) &mdash; HE20 MHz Data Rate Calculation</h2>
+
+    <p>
+        The following example demonstrates the data rate calculation for <strong>802.11ax (Wi-Fi 6)</strong>,
+        which introduces several key differences over 802.11n: a much wider FFT (256 tones vs 64),
+        higher-order modulation (up to 1024-QAM), and a longer OFDM symbol duration (12.8 &mu;s data interval).
+    </p>
+
+    <div class="result-box">
+        <strong>Result: Data rate = 143.4 Mbps</strong> &mdash; This is 802.11ax HE20, MCS 11 (1024-QAM, R=5/6), 1 Spatial Stream, Short GI (0.8 &mu;s).
+    </div>
+
+    <h3>Step 1: Data Subcarriers</h3>
+    <p>
+        802.11ax HE20 uses a 256-point FFT. After subtracting pilots, guard bands and DC tone,
+        there are <strong>234 data subcarriers</strong>.
+    </p>
+    <div class="math-block">
+        \[ N_{SD} = 256 - 22\,(\text{pilots/guard/DC}) = 234 \]
+    </div>
+
+    <h3>Step 2: Bits per Subcarrier (BPSCS)</h3>
+    <p>
+        1024-QAM &mdash; introduced in 802.11ax &mdash; encodes <strong>10 bits per subcarrier</strong>
+        (since \(\log_2(1024) = 10\)).
+    </p>
+    <div class="math-block">
+        \[ BPSCS = 10 \text{ bits/subcarrier} \]
+    </div>
+
+    <h3>Step 3: Coded Bits per OFDM Symbol (N_CBPS)</h3>
+    <p>
+        The total coded bits per OFDM symbol:
+    </p>
+    <div class="math-block">
+        \[ N_{CBPS} = N_{SD} \times BPSCS = 234 \times 10 = 2340 \text{ coded bits} \]
+    </div>
+
+    <h3>Step 4: Information Bits per OFDM Symbol (N_DBPS)</h3>
+    <p>
+        With coding rate \(R = 5/6\):
+    </p>
+    <div class="math-block">
+        \[ N_{DBPS} = N_{CBPS} \times R = 2340 \times \frac{5}{6} = 1950 \text{ bits} \]
+    </div>
+
+    <h3>Step 5: OFDM Symbol Duration (T_SYM, Short GI)</h3>
+    <p>
+        802.11ax uses a much longer data interval of <strong>12.8 &mu;s</strong> (4&times; longer than 802.11n)
+        due to its 256-point FFT. With the standard short GI of 0.8 &mu;s:
+    </p>
+    <div class="math-block">
+        \[ T_{SYM} = 12.8\,\mu s + 0.8\,\mu s = 13.6\,\mu s \]
+    </div>
+
+    <h3>Step 6: Symbols per Second</h3>
+    <div class="math-block">
+        \[ \text{Symbols/sec} = \frac{1}{T_{SYM}} = \frac{1}{13.6 \times 10^{-6}} \approx 73{,}529 \text{ symbols/sec} \]
+    </div>
+
+    <h3>Step 7: PHY Data Rate</h3>
+    <div class="math-block">
+        \[ \text{Rate} = N_{DBPS} \times \text{Symbols/sec} = 1950 \times 73{,}529 \approx \mathbf{143.4\,Mbps} \]
+    </div>
+
+    <hr>
+
+    <h2>802.11n vs 802.11ax &mdash; Key Differences</h2>
+    <table>
+        <tr>
+            <th>Parameter</th>
+            <th>802.11n (HT20, MCS7)</th>
+            <th>802.11ax (HE20, MCS11)</th>
+        </tr>
+        <tr>
+            <td>FFT Size</td>
+            <td>64-point</td>
+            <td>256-point</td>
+        </tr>
+        <tr>
+            <td>Data Subcarriers (N<sub>SD</sub>)</td>
+            <td>52</td>
+            <td>234</td>
+        </tr>
+        <tr>
+            <td>Modulation</td>
+            <td>64-QAM (6 bits/SC)</td>
+            <td>1024-QAM (10 bits/SC)</td>
+        </tr>
+        <tr>
+            <td>Coding Rate (R)</td>
+            <td>5/6</td>
+            <td>5/6</td>
+        </tr>
+        <tr>
+            <td>N<sub>CBPS</sub></td>
+            <td>312</td>
+            <td>2340</td>
+        </tr>
+        <tr>
+            <td>N<sub>DBPS</sub></td>
+            <td>260</td>
+            <td>1950</td>
+        </tr>
+        <tr>
+            <td>Data Interval</td>
+            <td>3.2 &mu;s</td>
+            <td>12.8 &mu;s</td>
+        </tr>
+        <tr>
+            <td>Short GI</td>
+            <td>0.4 &mu;s</td>
+            <td>0.8 &mu;s</td>
+        </tr>
+        <tr>
+            <td>T<sub>SYM</sub> (Short GI)</td>
+            <td>3.6 &mu;s</td>
+            <td>13.6 &mu;s</td>
+        </tr>
+        <tr>
+            <td>Symbols/sec</td>
+            <td>277,778</td>
+            <td>73,529</td>
+        </tr>
+        <tr>
+            <td><strong>PHY Data Rate</strong></td>
+            <td><strong>72.2 Mbps</strong></td>
+            <td><strong>143.4 Mbps</strong></td>
+        </tr>
+    </table>
+
 </div>
 </body>
 </html>
