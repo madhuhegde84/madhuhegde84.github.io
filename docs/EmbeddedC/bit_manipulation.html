@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bit Manipulation in Embedded C — Quick Reference Guide</title>
+<style>
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.6;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    color: #333;
+    background-color: #f9f9f9;
+}
+.container {
+    background-color: white;
+    padding: 40px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border-radius: 8px;
+}
+h1 {
+    color: #2c3e50;
+    border-bottom: 3px solid #3498db;
+    padding-bottom: 10px;
+    font-size: 2.2em;
+}
+h2 {
+    color: #34495e;
+    margin-top: 30px;
+    font-size: 1.8em;
+    border-bottom: 2px solid #ecf0f1;
+    padding-bottom: 8px;
+}
+h3 {
+    color: #546e7a;
+    margin-top: 20px;
+    font-size: 1.4em;
+}
+code {
+    background-color: #f4f4f4;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9em;
+    color: #c7254e;
+}
+pre {
+    background-color: #282c34;
+    color: #abb2bf;
+    padding: 20px;
+    border-radius: 5px;
+    overflow-x: auto;
+    border-left: 4px solid #3498db;
+}
+pre code {
+    background-color: transparent;
+    color: #abb2bf;
+    padding: 0;
+}
+ul, ol {
+    margin: 15px 0;
+    padding-left: 30px;
+}
+li {
+    margin: 8px 0;
+}
+strong {
+    color: #2c3e50;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+}
+th {
+    background-color: #3498db;
+    color: white;
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+}
+td {
+    padding: 12px;
+    border-bottom: 1px solid #ecf0f1;
+}
+tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+tr:hover {
+    background-color: #e8f4f8;
+}
+.result-box {
+    background-color: #eaf4fb;
+    border-left: 5px solid #3498db;
+    border-radius: 6px;
+    padding: 18px 24px;
+    margin: 24px 0;
+    font-size: 1.05em;
+}
+.result-box strong {
+    color: #1a6fa8;
+}
+.warn-box {
+    background-color: #fff8e1;
+    border-left: 5px solid #f39c12;
+    border-radius: 6px;
+    padding: 14px 20px;
+    margin: 18px 0;
+}
+.warn-box strong {
+    color: #b7770d;
+}
+.advanced-badge {
+    background-color: #e74c3c;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 600;
+    margin-left: 10px;
+}
+blockquote {
+    border-left: 4px solid #3498db;
+    padding-left: 20px;
+    margin: 20px 0;
+    color: #555;
+    font-style: italic;
+}
+hr {
+    border: none;
+    border-top: 2px solid #ecf0f1;
+    margin: 30px 0;
+}
+@media (max-width: 768px) {
+    body { padding: 10px; }
+    .container { padding: 20px; }
+    h1 { font-size: 1.8em; }
+    h2 { font-size: 1.5em; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Bit Manipulation in Embedded C</h1>
+<p>A quick reference guide for firmware development — covering essential bit operations, register programming patterns, and hardware-level optimizations.</p>
+<hr>
+
+<h2>1. Core Bitwise Operators</h2>
+<p>Understanding the fundamental bitwise operators is critical for efficient register and hardware manipulation in embedded systems.</p>
+
+<table>
+<tr>
+    <th>Operator</th>
+    <th>Symbol</th>
+    <th>Example</th>
+    <th>Description</th>
+    <th>Firmware Use Case</th>
+</tr>
+<tr>
+    <td>AND</td>
+    <td>&</td>
+    <td>0b1101 & 0b1011 = 0b1001</td>
+    <td>Sets bit to 1 only if both bits are 1</td>
+    <td>Masking / clearing bits</td>
+</tr>
+<tr>
+    <td>OR</td>
+    <td>|</td>
+    <td>0b1100 | 0b0011 = 0b1111</td>
+    <td>Sets bit to 1 if either bit is 1</td>
+    <td>Setting bits</td>
+</tr>
+<tr>
+    <td>XOR</td>
+    <td>^</td>
+    <td>0b1010 ^ 0b0110 = 0b1100</td>
+    <td>Sets bit to 1 if bits are different</td>
+    <td>Toggling bits, swap without temp</td>
+</tr>
+<tr>
+    <td>NOT</td>
+    <td>~</td>
+    <td>~0b1010 = 0b0101 (inverted)</td>
+    <td>Inverts all bits</td>
+    <td>Creating inverse masks</td>
+</tr>
+<tr>
+    <td>Left Shift</td>
+    <td><<</td>
+    <td>0b0001 << 3 = 0b1000</td>
+    <td>Shifts bits left, fills with 0</td>
+    <td>Multiply by power of 2, position bits</td>
+</tr>
+<tr>
+    <td>Right Shift</td>
+    <td>>></td>
+    <td>0b1000 >> 2 = 0b0010</td>
+    <td>Shifts bits right</td>
+    <td>Divide by power of 2, extract fields</td>
+</tr>
+</table>
+
+<h2>2. Essential Bit Manipulation Macros</h2>
+<p>Standard macros used across embedded firmware to manipulate individual bits safely and efficiently.</p>
+
+<h3>Single Bit Operations</h3>
+<pre><code>/* Define bit position helper */
+#define BIT(n)           (1U << (n))
+
+/* Set the n-th bit in register */
+#define SET_BIT(reg, n)     ((reg) |= BIT(n))
+
+/* Clear the n-th bit in register */
+#define CLEAR_BIT(reg, n)   ((reg) &= ~BIT(n))
+
+/* Toggle the n-th bit in register */
+#define TOGGLE_BIT(reg, n)  ((reg) ^= BIT(n))
+
+/* Test if n-th bit is set (returns 0 or 1) */
+#define TEST_BIT(reg, n)    (((reg) >> (n)) & 1U)
+
+/* Example usage: Enable UART transmitter (bit 3) */
+SET_BIT(UART_CTRL, 3);
+
+/* Check if RX buffer full (bit 5) */
+if (TEST_BIT(UART_STATUS, 5)) {
+    process_rx_data();
+}</code></pre>
+
+<div class="warn-box">
+<strong>Important:</strong> Use <code>1U</code> (unsigned) to avoid sign extension issues on 32-bit systems. Shifting signed integers can cause undefined behavior.
+</div>
+
+<h3>Multi-Bit Field Operations</h3>
+<pre><code>/* Extract a multi-bit field from register */
+#define FIELD_GET(reg, mask, shift) \  
+    (((reg) & (mask)) >> (shift))
+
+/* Insert a value into a multi-bit field */
+#define FIELD_SET(reg, mask, shift, val) \
+    ((reg) = ((reg) & ~(mask)) | (((val) << (shift)) & (mask)))
+
+/* Example: SPI control register with mode field at bits [6:4] */
+#define SPI_MODE_MASK   (0x7 << 4)  /* 3 bits wide */
+#define SPI_MODE_SHIFT  4
+
+/* Set SPI mode to 3 */
+uint32_t ctrl = SPI_CTRL;
+FIELD_SET(ctrl, SPI_MODE_MASK, SPI_MODE_SHIFT, 3);
+SPI_CTRL = ctrl;
+
+/* Read current SPI mode */
+uint8_t mode = FIELD_GET(SPI_CTRL, SPI_MODE_MASK, SPI_MODE_SHIFT);</code></pre>
+
+<h2>3. Classic Bit Manipulation Tricks</h2>
+<p>These patterns appear frequently in embedded firmware and are essential for optimization.</p>
+
+<h3>Check if Power of 2</h3>
+<pre><code>/* Returns 1 if x is power of 2, else 0 */
+int is_power_of_2(uint32_t x) {
+    return x && !(x & (x - 1));
+}
+
+/* Why it works: Power of 2 has exactly one bit set.
+   x-1 flips all bits after that bit.
+   Example: x=8 (0b1000), x-1=7 (0b0111), x&(x-1)=0 */
+
+/* Firmware use: Validating buffer sizes for DMA alignment */
+if (!is_power_of_2(dma_buffer_size)) {
+    return ERROR_INVALID_ALIGNMENT;
+}</code></pre>
+
+<h3>Count Set Bits (Popcount / Hamming Weight)</h3>
+<pre><code>/* Brian Kernighan's algorithm - O(number of set bits) */
+int popcount(uint32_t x) {
+    int count = 0;
+    while (x) {
+        x &= (x - 1);  /* Clears the least significant set bit */
+        count++;
+    }
+    return count;
+}
+
+/* Use case: Check how many interrupts are pending */
+if (popcount(IRQ_STATUS) > 5) {
+    /* Interrupt storm detected */
+    disable_peripheral();
+}</code></pre>
+
+<h3>Isolate Lowest Set Bit</h3>
+<pre><code>/* Get only the lowest set bit */
+uint32_t lsb = x & (-x);
+
+/* Example: x = 0b11010000
+            -x = 0b00110000 (two's complement)
+       x & -x = 0b00010000 (isolates lowest 1) */
+
+/* Clear lowest set bit */
+x = x & (x - 1);
+
+/* Firmware pattern: Process pending interrupts one at a time */
+while (irq_pending) {
+    uint32_t bit = irq_pending & (-irq_pending);
+    handle_interrupt(bit);
+    irq_pending &= (irq_pending - 1);  /* Clear handled */
+}</code></pre>
+
+<h3>XOR Swap (No Temporary Variable)</h3>
+<pre><code>/* Swap two variables without temp */
+void xor_swap(uint32_t *a, uint32_t *b) {
+    if (a != b) {  /* Critical: avoid swapping same location */
+        *a ^= *b;
+        *b ^= *a;
+        *a ^= *b;
+    }
+}
+
+/* Use case: Byte order reversal in packet processing */</code></pre>
+
+<div class="result-box">
+<strong>Key insight:</strong> <code>x & (x-1)</code> clears the rightmost set bit. This is the foundation of many efficient bit manipulation algorithms.
+</div>
+
+<h2>4. Byte Manipulation & Endianness</h2>
+<p>Essential for packet processing, network protocols, and hardware descriptor programming.</p>
+
+<h3>Byte Swap (Endian Conversion)</h3>
+<pre><code>/* Swap bytes in 16-bit value */
+uint16_t swap16(uint16_t x) {
+    return (x >> 8) | (x << 8);
+}
+
+/* Swap bytes in 32-bit value */
+uint32_t swap32(uint32_t x) {
+    return ((x >> 24) & 0xFF)       |
+           ((x >> 8)  & 0xFF00)     |
+           ((x << 8)  & 0xFF0000)   |
+           ((x << 24) & 0xFF000000);
+}
+
+/* Modern approach: Use compiler builtins */
+#define BSWAP16(x) __builtin_bswap16(x)
+#define BSWAP32(x) __builtin_bswap32(x)
+
+/* 802.11 MAC header example (network byte order) */
+typedef struct __attribute__((packed)) {
+    uint16_t frame_ctrl;  /* Little-endian on most SoCs */
+    uint16_t duration;
+    uint8_t  addr1[6];
+} wlan_hdr_t;</code></pre>
+
+<h3>Extract and Insert Bytes</h3>
+<pre><code>/* Extract byte at position n (0 = LSB) */
+#define BYTE_GET(x, n)  (((x) >> ((n) * 8)) & 0xFF)
+
+/* Insert byte at position n */
+#define BYTE_SET(x, n, val) \
+    ((x) = ((x) & ~(0xFF << ((n)*8))) | (((val) & 0xFF) << ((n)*8)))
+
+/* Example: Extract RSSI from PHY status word */
+uint32_t phy_stat = 0x12345678;
+uint8_t rssi = BYTE_GET(phy_stat, 0);  /* = 0x78 */</code></pre>
+
+<div class="warn-box">
+<strong>WLAN firmware tip:</strong> 802.11 headers are in network byte order (big-endian). On little-endian SoCs (ARM Cortex-M, most MIPS), always use <code>ntohs()</code> / <code>htons()</code> or manual swaps when parsing sequence numbers, duration fields, etc.
+</div>
+
+<h2>5. Register Programming Patterns</h2>
+<p>Safe and efficient patterns for memory-mapped I/O and peripheral control.</p>
+
+<h3>Write-1-to-Clear (W1C) Interrupt Status</h3>
+<pre><code>/* Many SoC interrupt status registers use W1C:
+   Writing 1 clears the bit; writing 0 has no effect.
+   Reading returns current pending status. */
+
+#define IRQ_RX_DONE   BIT(0)
+#define IRQ_TX_DONE   BIT(1)
+#define IRQ_ERROR     BIT(7)
+
+void handle_interrupts(void) {
+    uint32_t status = IRQ_STATUS_REG;
+    
+    /* WRONG: Read-modify-write can lose interrupts */
+    /* IRQ_STATUS_REG &= ~IRQ_RX_DONE;  // DON'T DO THIS */
+    
+    /* CORRECT: Write only the bits you want to clear */
+    IRQ_STATUS_REG = IRQ_RX_DONE | IRQ_TX_DONE;
+    
+    /* Process each interrupt */
+    if (status & IRQ_RX_DONE)  handle_rx();
+    if (status & IRQ_TX_DONE)  handle_tx();
+    if (status & IRQ_ERROR)    handle_error();
+}</code></pre>
+
+<div class="result-box">
+<strong>Critical pattern:</strong> For W1C registers, write back exactly the bits you want to clear. Never use <code>&= ~mask</code> as it may unintentionally clear newly-arrived interrupts.
+</div>
+
+<h3>Atomic Read-Modify-Write</h3>
+<pre><code>/* Problem: RMW is NOT atomic - interrupts can corrupt state */
+
+/* UNSAFE in ISR context */
+void unsafe_set_bit(volatile uint32_t *reg, uint8_t n) {
+    *reg |= BIT(n);  /* Read, modify, write - 3 bus cycles */
+}
+
+/* SAFE: Disable interrupts for critical section */
+void safe_set_bit(volatile uint32_t *reg, uint8_t n) {
+    uint32_t irq_state = disable_global_irq();
+    *reg |= BIT(n);
+    restore_global_irq(irq_state);
+}
+
+/* For multi-core: Use hardware atomic operations */
+__sync_fetch_and_or(reg, BIT(n));  /* GCC builtin */</code></pre>
+
+<h3>Bitmask Flags with Iteration</h3>
+<pre><code>/* Efficient pattern for processing multiple set bits */
+#define FLAG_A  BIT(0)
+#define FLAG_B  BIT(3)
+#define FLAG_C  BIT(7)
+
+void process_flags(uint32_t flags) {
+    /* Process each set bit */
+    while (flags) {
+        uint32_t bit = flags & (-flags);  /* Isolate LSB */
+        int pos = __builtin_ctz(bit);     /* Count trailing zeros */
+        
+        switch (pos) {
+            case 0: handle_flag_a(); break;
+            case 3: handle_flag_b(); break;
+            case 7: handle_flag_c(); break;
+        }
+        
+        flags &= (flags - 1);  /* Clear processed bit */
+    }
+}</code></pre>
+
+<h2>6. Memory-Mapped I/O Access Patterns</h2>
+
+<h3>Defining Hardware Registers</h3>
+<pre><code>/* Method 1: Direct pointer cast */
+#define UART_BASE       0x40011000U
+#define UART_SR         (*(volatile uint32_t *)(UART_BASE + 0x00))
+#define UART_DR         (*(volatile uint32_t *)(UART_BASE + 0x04))
+#define UART_CTRL       (*(volatile uint32_t *)(UART_BASE + 0x08))
+
+/* Method 2: Register structure (preferred for peripheral blocks) */
+typedef struct {
+    volatile uint32_t SR;      /* Status register */
+    volatile uint32_t DR;      /* Data register */
+    volatile uint32_t CTRL;    /* Control register */
+    volatile uint32_t BRR;     /* Baud rate register */
+} UART_TypeDef;
+
+#define UART  ((UART_TypeDef *)UART_BASE)
+
+/* Usage */
+UART->CTRL |= BIT(0);  /* Enable UART */
+while (!(UART->SR & BIT(7)))  /* Wait for TX empty */
+    ;
+UART->DR = 'A';  /* Send character */</code></pre>
+
+<div class="warn-box">
+<strong>volatile required:</strong> Always use <code>volatile</code> for hardware registers. The compiler must generate actual memory reads/writes and not cache values in CPU registers.
+</div>
+
+<h2>7. Advanced Bit Manipulation Techniques</h2>
+<p>Less commonly asked but critical for firmware optimization and problem-solving.</p>
+
+<h3>Reverse Bits</h3>
+<pre><code>/* Reverse bits in a 32-bit integer */
+uint32_t reverse_bits_loop(uint32_t x) {
+    uint32_t result = 0;
+    for (int i = 0; i < 32; i++) {
+        result = (result << 1) | (x & 1);
+        x >>= 1;
+    }
+    return result;
+}
+
+/* Divide-and-conquer approach (faster) */
+uint32_t reverse_bits(uint32_t x) {
+    x = ((x >> 1)  & 0x55555555) | ((x & 0x55555555) << 1);   /* Swap pairs */
+    x = ((x >> 2)  & 0x33333333) | ((x & 0x33333333) << 2);   /* Swap nibbles */
+    x = ((x >> 4)  & 0x0F0F0F0F) | ((x & 0x0F0F0F0F) << 4);   /* Swap bytes */
+    x = ((x >> 8)  & 0x00FF00FF) | ((x & 0x00FF00FF) << 8);   /* Swap 16-bit */
+    x = ((x >> 16) & 0x0000FFFF) | ((x & 0x0000FFFF) << 16);  /* Swap halves */
+    return x;
+}
+
+/* Use case: Bit-reversed addressing in FFT, CRC table generation */</code></pre>
+
+<h3>Parallel Popcount (Constant Time)</h3>
+<pre><code>/* Count set bits in O(1) - no loops */
+int popcount_parallel(uint32_t x) {
+    x = x - ((x >> 1) & 0x55555555);
+    x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
+    x = (x + (x >> 4)) & 0x0F0F0F0F;
+    x = x + (x >> 8);
+    x = x + (x >> 16);
+    return x & 0x3F;
+}
+
+/* Modern alternative: Use GCC builtin */
+#define POPCOUNT(x) __builtin_popcount(x)</code></pre>
+
+<hr>
+<h2>8. Medium to Advanced Bit Manipulation Problems <span class="advanced-badge">Advanced</span></h2>
+<p>These problems test deeper algorithmic thinking in embedded and firmware contexts.</p>
+
+<h3>Problem 1: Find Two Non-Repeating Numbers Using XOR</h3>
+<p>Given an array where all elements repeat twice except two — find those two elements using O(1) space.</p>
+<pre><code>/* Concept: XOR all elements. Result = a XOR b (the two non-repeating nums).
+   Find a set bit in result to partition array into two groups.
+   XOR each group independently to get a and b. */
+void find_two_unique(int *arr, int n, int *a, int *b) {
+    int xor_all = 0;
+    for (int i = 0; i < n; i++) xor_all ^= arr[i];
+    
+    /* Find any set bit (rightmost) in xor_all */
+    int set_bit = xor_all & (-xor_all);
+    
+    *a = 0; *b = 0;
+    for (int i = 0; i < n; i++) {
+        if (arr[i] & set_bit)
+            *a ^= arr[i];  /* Group 1: bit is set */
+        else
+            *b ^= arr[i];  /* Group 2: bit is clear */
+    }
+}
+
+/* Firmware use: Finding two faulty DMA channels or IRQ IDs */</code></pre>
+
+<h3>Problem 2: Gray Code Encode and Decode</h3>
+<p>Gray code changes by only one bit between successive values. Used in rotary encoders and ADC communication.</p>
+<pre><code>/* Binary to Gray code */
+uint32_t bin_to_gray(uint32_t n) {
+    return n ^ (n >> 1);
+}
+
+/* Gray to Binary */
+uint32_t gray_to_bin(uint32_t g) {
+    uint32_t n = 0;
+    for (; g; g >>= 1)
+        n ^= g;
+    return n;
+}
+
+/* Example:
+   Binary  0001 = 1  ->  Gray 0001
+   Binary  0010 = 2  ->  Gray 0011
+   Binary  0011 = 3  ->  Gray 0010
+   Only one bit changes each step */
+
+/* Firmware use: RF channel selector with mechanical encoder */</code></pre>
+
+<h3>Problem 3: Find Missing Number in [0..N]</h3>
+<p>Given an array of N numbers from range [0..N] with one missing, find it.</p>
+<pre><code>/* Approach 1: XOR (most robust, no overflow) */
+uint32_t find_missing_xor(uint32_t *arr, int n) {
+    uint32_t xor_all = n;  /* XOR with N itself */
+    for (int i = 0; i < n; i++) {
+        xor_all ^= i ^ arr[i];
+    }
+    return xor_all;
+}
+
+/* Approach 2: Sum formula (simpler but can overflow for large N) */
+uint32_t find_missing_sum(uint32_t *arr, int n) {
+    uint64_t expected = (uint64_t)n * (n + 1) / 2;
+    uint64_t actual = 0;
+    for (int i = 0; i < n; i++) actual += arr[i];
+    return (uint32_t)(expected - actual);
+}
+
+/* Firmware use: Detect missing sequence numbers in packet stream */</code></pre>
+
+<h3>Problem 4: Next Power of Two (OR-Fold Technique)</h3>
+<p>Round up a value to the next power of 2 — critical for buffer alignment and DMA descriptor sizing.</p>
+<pre><code>uint32_t next_pow2(uint32_t x) {
+    if (x == 0) return 1;
+    x--;           /* Handle exact powers of 2 */
+    x |= x >> 1;  /* Smear highest set bit downward */
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    return x + 1;
+}
+
+/* How it works:
+   x=6 (0b00000110)
+   x-- = 5 (0b00000101)
+   After OR-folds: 0b00000111 (all 1s below MSB)
+   +1 = 8 (0b00001000) */
+
+/* Use case: Allocate DMA buffer that must be 2^n aligned */
+size_t aligned_size = next_pow2(requested_size);</code></pre>
+
+<h3>Problem 5: Swap Bits at Positions i and j</h3>
+<pre><code>void swap_bits(uint32_t *x, int i, int j) {
+    /* XOR trick: only swap if bits are different */
+    uint32_t bi = (*x >> i) & 1;
+    uint32_t bj = (*x >> j) & 1;
+    
+    if (bi != bj) {  /* Only toggle if different */
+        *x ^= (1U << i) | (1U << j);
+    }
+}
+
+/* Why XOR works:
+   If bi==bj, XOR toggles both to opposite values - wrong!
+   Only toggle when they differ - hence the check. */
+
+/* Use case: Reorder bits in hardware descriptor flags */</code></pre>
+
+<h3>Problem 6: Bitmap-Based Resource Allocator</h3>
+<p>A lock-free bitmask allocator for DMA channels, memory pools, or hardware resources.</p>
+<pre><code>#define MAX_CHANNELS    32
+static volatile uint32_t channel_bitmap = 0xFFFFFFFF;  /* 1 = free */
+
+/* Allocate a free channel, returns -1 if none available */
+int alloc_channel(void) {
+    uint32_t bmap, bit;
+    do {
+        bmap = channel_bitmap;
+        if (bmap == 0) return -1;  /* All busy */
+        bit = bmap & (-bmap);      /* Isolate lowest free channel */
+    } while (!__sync_bool_compare_and_swap(
+                &channel_bitmap, bmap, bmap & ~bit));
+    return __builtin_ctz(bit);     /* Return channel index */
+}
+
+/* Free a channel */
+void free_channel(int ch) {
+    __sync_fetch_and_or(&channel_bitmap, 1U << ch);
+}
+
+/* Check channel status */
+int is_channel_busy(int ch) {
+    return !(channel_bitmap & (1U << ch));
+}</code></pre>
+
+<h3>Problem 7: Circular Ring Buffer with AND-Wrap</h3>
+<p>Using bitwise AND for ring buffer wrap-around (valid only for power-of-2 sizes). This avoids modulo which can be expensive on embedded MCUs without hardware divider.</p>
+<pre><code>#define RING_SIZE   64     /* Must be power of 2 */
+#define RING_MASK   (RING_SIZE - 1)
+
+typedef struct {
+    volatile uint32_t  prod_idx;  /* Producer (firmware) */
+    volatile uint32_t  cons_idx;  /* Consumer (hardware) */
+    tx_desc_t          ring[RING_SIZE];
+} ring_t;
+
+/* Get number of used slots */
+static inline uint32_t ring_count(ring_t *r) {
+    return (r->prod_idx - r->cons_idx) & RING_MASK;
+}
+
+/* Get number of free slots */
+static inline uint32_t ring_free(ring_t *r) {
+    return RING_SIZE - ring_count(r) - 1;
+}
+
+/* Enqueue descriptor */
+int ring_enqueue(ring_t *r, tx_desc_t *desc) {
+    if (ring_free(r) == 0) return -1;  /* Full */
+    
+    r->ring[r->prod_idx & RING_MASK] = *desc;
+    
+    /* Memory barrier before updating producer index */
+    __DMB();  /* Data Memory Barrier (ARM) */
+    r->prod_idx++;
+    return 0;
+}
+
+/* Dequeue descriptor */
+int ring_dequeue(ring_t *r, tx_desc_t *desc) {
+    if (ring_count(r) == 0) return -1;  /* Empty */
+    
+    *desc = r->ring[r->cons_idx & RING_MASK];
+    __DMB();
+    r->cons_idx++;
+    return 0;
+}
+
+/* Why AND instead of modulo:
+   (prod % RING_SIZE) requires division (slow on MCUs)
+   (prod & RING_MASK) is a single AND instruction */</code></pre>
+
+<h3>Problem 8: Multiply / Divide Without Hardware Multiplier</h3>
+<p>Some microcontrollers lack hardware multiply/divide. Shift-and-add implements it efficiently.</p>
+<pre><code>/* Multiply x by n using shifts and adds */
+uint32_t mul_by_shifts(uint32_t x, uint32_t n) {
+    uint32_t result = 0;
+    while (n) {
+        if (n & 1) result += x;  /* Add current power */
+        x <<= 1;                 /* Double x */
+        n >>= 1;                 /* Halve n */
+    }
+    return result;
+}
+
+/* Divide x by constant n using multiplication by magic constant */
+/* For divide by 10: multiply by magic number and shift right */
+uint32_t div_by_10(uint32_t x) {
+    /* magic = ceil(2^35 / 10) = 0xCCCCCCCCUL >> adjustment */
+    return (uint32_t)(((uint64_t)x * 0xCCCCCCCDULL) >> 35);
+}
+
+/* Multiply by non-power-of-2 constants */
+uint32_t mul_by_10(uint32_t x) {
+    return (x << 3) + (x << 1);  /* x*8 + x*2 = x*10 */
+}
+
+uint32_t mul_by_3(uint32_t x) {
+    return x + (x << 1);         /* x + x*2 = x*3 */
+}</code></pre>
+
+<h3>Problem 9: Rotate Bits Left/Right (CRC step)</h3>
+<pre><code>/* Rotate left: bits shifted out from MSB reappear at LSB */
+uint32_t rotl32(uint32_t x, uint8_t n) {
+    n &= 31;  /* Safety: modulo 32 */
+    return (x << n) | (x >> (32 - n));
+}
+
+/* Rotate right */
+uint32_t rotr32(uint32_t x, uint8_t n) {
+    n &= 31;
+    return (x >> n) | (x << (32 - n));
+}
+
+/* CRC-32 one-step using rotate (bit-by-bit) */
+#define CRC32_POLY  0xEDB88320U  /* Reflected polynomial */
+
+uint32_t crc32_step(uint32_t crc, uint8_t byte) {
+    crc ^= byte;
+    for (int i = 0; i < 8; i++) {
+        uint32_t lsb = crc & 1;
+        crc >>= 1;
+        if (lsb) crc ^= CRC32_POLY;  /* XOR with poly if bit was set */
+    }
+    return crc;
+}
+
+/* Firmware use: 802.11 FCS (Frame Check Sequence) validation */</code></pre>
+
+<hr>
+<h2>Quick Summary Table</h2>
+<table>
+<tr>
+    <th>Operation</th>
+    <th>Code Pattern</th>
+    <th>Use Case</th>
+</tr>
+<tr>
+    <td>Set bit n</td>
+    <td><code>reg |= (1U &lt;&lt; n)</code></td>
+    <td>Enable feature/peripheral</td>
+</tr>
+<tr>
+    <td>Clear bit n</td>
+    <td><code>reg &amp;= ~(1U &lt;&lt; n)</code></td>
+    <td>Disable feature/peripheral</td>
+</tr>
+<tr>
+    <td>Toggle bit n</td>
+    <td><code>reg ^= (1U &lt;&lt; n)</code></td>
+    <td>LED toggle, flag inversion</td>
+</tr>
+<tr>
+    <td>Test bit n</td>
+    <td><code>(reg &gt;&gt; n) &amp; 1U</code></td>
+    <td>Check hardware status</td>
+</tr>
+<tr>
+    <td>Clear LSB</td>
+    <td><code>x &amp;= (x - 1)</code></td>
+    <td>Popcount, iterate set bits</td>
+</tr>
+<tr>
+    <td>Isolate LSB</td>
+    <td><code>x &amp; (-x)</code></td>
+    <td>Find first set bit</td>
+</tr>
+<tr>
+    <td>Power of 2 check</td>
+    <td><code>x &amp;&amp; !(x &amp; (x-1))</code></td>
+    <td>DMA alignment check</td>
+</tr>
+<tr>
+    <td>Next power of 2</td>
+    <td>OR-fold + add 1</td>
+    <td>Buffer size rounding</td>
+</tr>
+<tr>
+    <td>Ring wrap</td>
+    <td><code>idx &amp; (SIZE-1)</code></td>
+    <td>TX/RX descriptor ring</td>
+</tr>
+<tr>
+    <td>W1C clear</td>
+    <td><code>reg = mask</code> (no RMW)</td>
+    <td>Interrupt status clear</td>
+</tr>
+</table>
+
+<blockquote>
+<strong>Key interview principle:</strong> Always be able to write clean C code without macro/typedef errors. For every bit operation, discuss edge cases: race conditions, endianness, alignment, and <code>volatile</code> semantics. Connect each pattern to real hardware scenarios from firmware experience.
+</blockquote>
+
+</div>
+</body>
+</html>
