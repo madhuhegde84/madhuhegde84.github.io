@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DSA Priorities for MAANG Embedded Systems (L6) &mdash; A Domain-Specific Prep Guide</title>
+<meta name="description" content="A refined, domain-specific DSA priority list for L6 Embedded Systems interviews at MAANG companies, with focus on firmware-flavored coding patterns." />
+<style>
+  :root {
+    --fg: #1f2328;
+    --muted: #57606a;
+    --bg: #ffffff;
+    --subtle: #f6f8fa;
+    --border: #d0d7de;
+    --link: #0969da;
+    --p1: #cf222e;
+    --p2: #d48806;
+    --p3: #9a6700;
+    --p4: #1f883d;
+    --code-bg: #f6f8fa;
+    --accent: #0969da;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans",
+                 Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--fg);
+    background: var(--bg);
+  }
+  .wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 32px 20px 64px;
+  }
+  .breadcrumbs {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .breadcrumbs a { color: var(--link); text-decoration: none; }
+  .breadcrumbs a:hover { text-decoration: underline; }
+  h1 {
+    font-size: 30px;
+    line-height: 1.25;
+    margin: 8px 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 17px;
+    margin: 0 0 8px;
+  }
+  .meta {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  h2 {
+    font-size: 22px;
+    margin: 40px 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: -0.005em;
+  }
+  h3 {
+    font-size: 17px;
+    margin: 24px 0 8px;
+  }
+  p { margin: 12px 0; }
+  ul, ol { padding-left: 22px; margin: 10px 0; }
+  li { margin: 6px 0; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 90%;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    overflow: auto;
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+  .tier {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 14px 0;
+    background: var(--subtle);
+  }
+  .tier h3 { margin-top: 0; }
+  .tier.p1 { border-left: 4px solid var(--p1); }
+  .tier.p2 { border-left: 4px solid var(--p2); }
+  .tier.p3 { border-left: 4px solid var(--p3); }
+  .tier.p4 { border-left: 4px solid var(--p4); }
+  .badge {
+    display: inline-block;
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-right: 8px;
+    font-weight: 600;
+    color: #fff;
+    vertical-align: middle;
+  }
+  .badge.p1 { background: var(--p1); }
+  .badge.p2 { background: var(--p2); }
+  .badge.p3 { background: var(--p3); }
+  .badge.p4 { background: var(--p4); }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 16px 0;
+    font-size: 14.5px;
+  }
+  th, td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: var(--subtle);
+    font-weight: 600;
+  }
+  .callout {
+    border-left: 4px solid var(--accent);
+    background: #ddf4ff;
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    margin: 18px 0;
+  }
+  .callout strong { color: #0a3069; }
+  .takeaway {
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--p1);
+    background: #fff8f8;
+    padding: 14px 18px;
+    border-radius: 0 6px 6px 0;
+    margin: 20px 0;
+  }
+  .back-link {
+    display: inline-block;
+    margin-top: 28px;
+    color: var(--link);
+    text-decoration: none;
+    font-size: 14px;
+  }
+  .back-link:hover { text-decoration: underline; }
+  @media (max-width: 600px) {
+    .wrap { padding: 20px 14px 48px; }
+    h1 { font-size: 25px; }
+    h2 { font-size: 19px; }
+    table { font-size: 13.5px; }
+    th, td { padding: 6px 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="breadcrumbs">
+    <a href="../../index.html">Home</a> &nbsp;/&nbsp;
+    <a href="../../index.html#embedded-systems">Embedded Systems</a> &nbsp;/&nbsp;
+    DSA Priorities for L6
+  </div>
+
+  <h1>DSA Priorities for MAANG Embedded Systems Interviews (L6)</h1>
+  <p class="subtitle">A domain-specific priority list &mdash; tuned for firmware and systems roles, not generic SWE.</p>
+  <p class="meta">Focus: Apple, Google, Amazon, Meta firmware/embedded tracks &middot; L6 (Staff / Principal equivalent)</p>
+
+  <h2>Why This List Looks Different</h2>
+  <p>
+    Generic MAANG prep lists are written for application SWEs. Embedded and firmware interviews at L6
+    overlap only partially with that template: there is far more signal in <em>pointer manipulation,
+    bounded buffers, and systems invariants</em>, and far less in classical DP, advanced graphs, or
+    backtracking. This list reflects that reality and leaves more room for the coding style that
+    actually differentiates senior embedded candidates &mdash; firmware-flavored structures like
+    circular buffers, ring allocators, and lock-free queues.
+  </p>
+
+  <h2><span class="badge p1">P1</span> Non-Negotiable Core</h2>
+  <div class="tier p1">
+    <h3>Master these. They appear in almost every embedded loop.</h3>
+    <ul>
+      <li><strong>Arrays + HashMap / HashSet</strong> &mdash; frequency maps, lookup tables, buffer
+        bookkeeping, deduplication in logs or telemetry streams.</li>
+      <li><strong>Linked Lists + pointer manipulation</strong> &mdash; reverse, cycle detection,
+        merge, partition. Natural for a C / embedded background and a very common ask specifically
+        for firmware candidates.</li>
+      <li><strong>Two Pointers</strong> &mdash; sorted arrays, in-place compaction, fast/slow
+        pointer patterns. Maps directly to memory-efficient firmware routines.</li>
+      <li><strong>Sliding Window</strong> &mdash; stream and buffer processing, subarray sum / count
+        problems, rate-limiting windows.</li>
+      <li><strong>Strings</strong> &mdash; parsing, pattern matching, tokenization. Firmware
+        regularly parses protocol frames, AT commands, log lines &mdash; expect at least one.</li>
+    </ul>
+  </div>
+
+  <h2><span class="badge p2">P2</span> High Value, Domain-Flavored</h2>
+  <div class="tier p2">
+    <h3>Not every round, but when they land they land hard &mdash; especially at Apple and Google.</h3>
+    <ul>
+      <li><strong>Stack and Queue</strong> (elevated) &mdash; RTOS queues, work queues, deferred
+        interrupt handlers, bounded producer / consumer. Conceptually and API-wise this is
+        <em>the</em> structure of an embedded system. Expect direct and domain-framed questions.</li>
+      <li><strong>Binary Search (and variants)</strong> &mdash; search on answer space, lower /
+        upper bound, rotated arrays. Occasionally asked; cheap to prepare.</li>
+      <li><strong>Trees &mdash; BFS / DFS basics</strong> &mdash; level order, path sum, LCA,
+        serialize / deserialize. Know the pattern; depth stays medium for embedded tracks.</li>
+    </ul>
+  </div>
+
+  <h2><span class="badge p3">P3</span> Know Conceptually, Low Direct Ask Rate</h2>
+  <div class="tier p3">
+    <h3>Understand the pattern so you can reason about a problem if it appears. Don&rsquo;t grind.</h3>
+    <ul>
+      <li><strong>Recursion + Divide &amp; Conquer</strong> &mdash; mostly already internalized from
+        tree / linked-list practice; keep it conceptual.</li>
+      <li><strong>Graphs &mdash; basic BFS / DFS</strong> &mdash; connected components, grid
+        traversal, shortest path in unweighted graphs. Asked at Google and Amazon embedded tracks,
+        rare at Apple and Meta firmware.</li>
+      <li><strong>Greedy</strong> &mdash; interval scheduling, canonical coin problems. Usually
+        one-off pattern recognition rather than a deep topic.</li>
+    </ul>
+  </div>
+
+  <h2><span class="badge p4">P4</span> Awareness Only</h2>
+  <div class="tier p4">
+    <h3>Skim for named patterns; do not over-invest unless the recruiter signals otherwise.</h3>
+    <ul>
+      <li><strong>Dynamic Programming</strong> &mdash; Meta firmware prep explicitly deprioritizes
+        it. Very low frequency on domain tracks.</li>
+      <li><strong>Backtracking / Permutations</strong> &mdash; generic SWE pattern; seldom tied to
+        firmware signal.</li>
+      <li><strong>Advanced Graphs</strong> &mdash; Dijkstra, Topological Sort, Union-Find. Almost
+        never in embedded domain rounds.</li>
+      <li><strong>Trie, Heap / Priority Queue</strong> &mdash; borderline awareness. Know what
+        they are and when you&rsquo;d reach for them; don&rsquo;t drill.</li>
+    </ul>
+  </div>
+
+  <h2>Corrections vs. a Generic MAANG DSA List</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Topic</th>
+        <th>Generic Priority</th>
+        <th>Embedded L6 Priority</th>
+        <th>Reason</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Dynamic Programming</td>
+        <td>P3</td>
+        <td>P4</td>
+        <td>Explicitly low frequency for firmware roles.</td>
+      </tr>
+      <tr>
+        <td>Advanced Graphs</td>
+        <td>P3</td>
+        <td>P4</td>
+        <td>Embedded interviews rarely test Dijkstra / Topo / Union-Find.</td>
+      </tr>
+      <tr>
+        <td>Backtracking</td>
+        <td>P3</td>
+        <td>P4</td>
+        <td>Generic SWE pattern; not firmware-relevant.</td>
+      </tr>
+      <tr>
+        <td>Linked Lists</td>
+        <td>P2</td>
+        <td>P1</td>
+        <td>Very high frequency specifically for embedded candidates.</td>
+      </tr>
+      <tr>
+        <td>Stack / Queue</td>
+        <td>P2</td>
+        <td>P2 (elevated)</td>
+        <td>RTOS / ISR context makes this a core signal.</td>
+      </tr>
+      <tr>
+        <td>Firmware-style coding</td>
+        <td>Not listed</td>
+        <td>Top priority</td>
+        <td>Circular buffer, ISR handler, ring buffer &mdash; the real differentiator at Apple / Google.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>The Real Differentiator: Firmware-Oriented Coding</h2>
+  <p>
+    The hours you save by deprioritizing DP, backtracking, and advanced graphs should be redirected
+    to firmware-oriented coding. These patterns come up as either the whole problem or a
+    &ldquo;make it production-safe&rdquo; follow-up at L6:
+  </p>
+  <ul>
+    <li><strong>Circular / ring buffers</strong> &mdash; single-producer single-consumer,
+      power-of-two sizing, head / tail semantics, wrap handling without modulo.</li>
+    <li><strong>Bounded queues and work queues</strong> &mdash; backpressure, overflow policy
+      (drop-newest vs. drop-oldest), ISR-safe enqueue.</li>
+    <li><strong>Memory allocators</strong> &mdash; fixed-block / pool allocators, simple slab,
+      free-list invariants, fragmentation reasoning.</li>
+    <li><strong>Lock-free data structures</strong> &mdash; atomics, memory ordering, SPSC / MPSC
+      queues, the ABA problem at a conceptual level.</li>
+    <li><strong>ISR / critical-section discipline</strong> &mdash; what can run in ISR context,
+      deferred work patterns, reentrancy, priority inversion.</li>
+    <li><strong>Bit manipulation</strong> &mdash; register packing, flag sets, endian conversion,
+      clear / set / toggle idioms.</li>
+  </ul>
+
+  <div class="callout">
+    <strong>L6 expectation:</strong> you don&rsquo;t just implement a ring buffer &mdash; you state
+    the invariants, argue why the code is ISR-safe, identify the failure modes under producer /
+    consumer mismatch, and propose a test strategy. Whiteboard code that acknowledges these is
+    worth significantly more than a correct-but-silent solution.
+  </div>
+
+  <h2>Suggested 4&ndash;6 Week Study Plan</h2>
+  <ol>
+    <li><strong>Week 1 &mdash; P1 warm-up.</strong> Arrays + hashing, sliding window,
+      strings / parsing. 3&ndash;4 mediums per day, time-boxed.</li>
+    <li><strong>Week 2 &mdash; Pointers and structures.</strong> Linked lists, two pointers, stack /
+      queue. Hand-write a singly-linked list and a bounded queue in C from scratch.</li>
+    <li><strong>Week 3 &mdash; Firmware-flavored coding.</strong> Circular buffer (SPSC), fixed-block
+      allocator, ISR-safe deferred work, simple spinlock / mutex reasoning.</li>
+    <li><strong>Week 4 &mdash; Trees and search.</strong> BFS / DFS variants, LCA, binary search on
+      answer space. One session on greedy patterns.</li>
+    <li><strong>Week 5 &mdash; Mock loops.</strong> Two timed sessions with firmware framing
+      (&ldquo;design a bounded logger&rdquo;, &ldquo;write a watchdog-safe queue&rdquo;). Review
+      invariant statements and edge cases.</li>
+    <li><strong>Week 6 &mdash; Targeted gaps.</strong> Touch P3 topics (graphs / recursion) and
+      skim P4 so you can recognize patterns. Re-run weaker problems from earlier weeks.</li>
+  </ol>
+
+  <div class="takeaway">
+    <strong>Bottom line.</strong> For L6 embedded at MAANG, the leverage is not in solving harder
+    DP or Dijkstra problems. It is in writing pointer-safe, invariant-clear, ISR-aware code under
+    time pressure &mdash; and in explaining <em>why</em> it is correct. Cut the generic grind,
+    double down on P1 plus firmware coding, and keep P3 / P4 at awareness level only.
+  </div>
+
+  <a class="back-link" href="../../index.html#embedded-systems">&larr; Back to Embedded Systems</a>
+
+</div>
+</body>
+</html>
